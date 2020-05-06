@@ -18,11 +18,12 @@ char buf[MAX_LINE_LENG];
 delimiters  [,:.;()\[\]{}]
 arithmetic   [+\-*/]
 
-alphabet    [a-zA-Z]+
-digits       [0-9]+
+alphabet    [a-zA-Z]
+digit       [0-9]
 
-id          {alphabet}[{alphabet}{digits}]*
-integer     {digits}
+    /* [a-zA-Z][a-zA-Z0-9]* */
+id          {alphabet}+({alphabet}*{digit}*)*
+integer     {digit}+
 
 
 %%
@@ -81,7 +82,10 @@ val         {token(yytext);}
 var         {token(yytext);}
 while       {token(yytext);}
 
+    /* identifiers */
+{id}        {tokenString("id", yytext);}
 
+    /* integer */
 {integer}   {tokenInteger("integer", atoi(yytext));}
 
 
