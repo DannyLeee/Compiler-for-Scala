@@ -4,9 +4,9 @@
 #include <string.h>
 #define LIST     strcat(buf,yytext)
 #define token(t) {LIST; printf("<%s>\n",t);}
-#define tokenInteger(t,i) {LIST; printf("<%s:%d>\n",t,i);}
-#define tokenFloat(t,f) {LIST; printf("<%s:%f>\n",t,f);}
-#define tokenString(t,s) {LIST; printf("<%s:%s>\n",t,s);}
+#define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
+#define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
+#define tokenString(t,s) {LIST; printf("<%s: %s>\n",t,s);}
 
 #define MAX_LINE_LENG 256
 
@@ -15,16 +15,23 @@ char buf[MAX_LINE_LENG];
 %}
 
 /* regular definition */
+/* symbol */
 delimiters  [,:.;()\[\]{}]
 arithmetic   [+\-*/]
 
+/* basic component */
 alphabet    [a-zA-Z]
 digit       [0-9]
 
-    /* [a-zA-Z][a-zA-Z0-9]* */
+/* identifier*/
+/* [a-zA-Z][a-zA-Z0-9]* */
 id          {alphabet}+({alphabet}*{digit}*)*
-integer     {digit}+
 
+/* number system */
+integer     {digit}+
+plain_real  {digit}+"."{digit}+ 
+expreal     [+-]?{digit}+"."{digit}+[Ee][+-]?{digit}+
+real        {plain_real}|{expreal}
 
 %%
 
@@ -86,8 +93,10 @@ while       {token(yytext);}
 {id}        {tokenString("id", yytext);}
 
     /* integer */
-{integer}   {tokenInteger("integer", atoi(yytext));}
+{integer}   {tokenInteger("integer", yytext);}
 
+  /* Real */
+{real}  {tokenFloat("real", yytext);}
 
 \n      {
             LIST;
@@ -98,10 +107,9 @@ while       {token(yytext);}
 [ \t]*  {LIST;}
 
 .       {
-
-        LIST;
-        printf("%d:%s\n", linenum+1, buf);
-        printf("bad character:'%s'\n",yytext);
-        exit(-1);
+            LIST;
+            printf("%d:%s\n", linenum+1, buf);
+            printf("bad character:'%s'\n",yytext);
+            exit(-1);
         }
 %%
