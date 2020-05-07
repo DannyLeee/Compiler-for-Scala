@@ -13,6 +13,7 @@
 
 int linenum = 1;
 char buf[MAX_LINE_LENG];
+int bufPt = 0;
 %}
 
 /* regular definition */
@@ -39,6 +40,9 @@ integer     {digit}+
 plain_real  {digit}+"."{digit}+ 
 expreal     [+-]?{digit}+"."{digit}+[Ee][+-]?{digit}+
 real        {plain_real}|{expreal}
+
+/* state */
+%x C_COMMENT
 
 %%
     /* Delimiters */
@@ -76,21 +80,42 @@ real        {plain_real}|{expreal}
     /* single line comment */
 \/\/    {
     char c;
-    int i = 2;
-    buf[0] = '\/';
-    buf[1] = '\/';
+    bufPt = 2;
+    LIST;
     while((c = input()) != '\n') {
-        buf[i] = c;
-        buf[i + 1] = 0;
-        i++;
+        buf[bufPt] = c;
+        buf[bufPt + 1] = 0;
+        bufPt++;
     }
     unput(c);
+}
+
+    /* multi lines comment */
+"/*"    {
+    LIST;
+    bufPt = 2;
+    BEGIN(C_COMMENT);
+}
+<C_COMMENT>"*/" {
+    LIST;
+    BEGIN(INITIAL);
+}
+<C_COMMENT>\n   {
+    LIST;
+    printf("%d: %s", linenum++, buf);
+    buf[0] = '\0';
+    bufPt = 0;
+}
+<C_COMMENT>.    {
+    LIST;
+    bufPt++;
 }
 
 \n      {
             LIST;
             printf("%d: %s", linenum++, buf);
             buf[0] = '\0';
+            bufPt = 0;
         }
 
 [ \t]*  {LIST;}
