@@ -3,6 +3,7 @@
 // #include <stdio.h>
 #include <string.h>
 #define LIST     strcat(buf,yytext)
+#define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
 #define token(t) {LIST; printf("<%s>\n",t);}
 #define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
 #define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
@@ -19,6 +20,12 @@ char buf[MAX_LINE_LENG];
 delimiters  [,:.;()\[\]{}]
 arithmetic   [+\-*/]
 
+/* keyword */
+keyword     boolean|break|char|case|class|continue|def|do|else|exit|false|float|for|if|int|null|object|print|println|repeat|return|string|to|true|type|val|var|while
+
+/* relational */
+relational  <|<=|>=|>|==|!=
+
 /* basic component */
 alphabet    [a-zA-Z]
 digit       [0-9]
@@ -34,7 +41,6 @@ expreal     [+-]?{digit}+"."{digit}+[Ee][+-]?{digit}+
 real        {plain_real}|{expreal}
 
 %%
-
     /* Delimiters */
     /* [,:.;()\[\]{}]      {token(yytext);} */
 {delimiters}    {token(yytext);}
@@ -46,48 +52,17 @@ real        {plain_real}|{expreal}
 "%"     {token(yytext);}
 
     /* Relational */
-"<"     {token(yytext);}
-"<="    {token(yytext);}
-">="    {token(yytext);}
-">"     {token(yytext);}
-"=="    {token(yytext);}
-"!="    {token(yytext);}
+{relational}     {token(yytext);}
 
     /* Logical */
-&&      {token(yytext);}
-"||"    {token(yytext);}
-!       {token(yytext);}
-
+&&|\|\||!      {token(yytext);}
 
     /* Keywords*/
-boolean     {token(yytext);}
-break       {token(yytext);}
-char        {token(yytext);}
-case        {token(yytext);}
-class       {token(yytext);}
-continue    {token(yytext);}
-def         {token(yytext);}
-do          {token(yytext);}
-else        {token(yytext);}
-exit        {token(yytext);}
-false       {token(yytext);}
-float       {token(yytext);}
-for         {token(yytext);}
-if          {token(yytext);}
-int         {token(yytext);}
-null        {token(yytext);}
-object      {token(yytext);}
-print       {token(yytext);}
-println     {token(yytext);}
-repeat      {token(yytext);}
-return      {token(yytext);}
-string      {token(yytext);}
-to          {token(yytext);}
-true        {token(yytext);}
-type        {token(yytext);}
-val         {token(yytext);}
-var         {token(yytext);}
-while       {token(yytext);}
+{keyword}   {
+    char temp[16];
+    TOUPPER(yytext, temp);
+    token(temp);
+}
 
     /* identifiers */
 {id}        {tokenString("id", yytext);}
