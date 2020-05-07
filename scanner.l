@@ -1,7 +1,7 @@
 %{
 /* C Declarations and Includes */
-// #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
 #define token(t) {LIST; printf("<%s>\n",t);}
@@ -72,6 +72,20 @@ real        {plain_real}|{expreal}
 
   /* Real */
 {real}  {tokenFloat("real", yytext);}
+
+    /* single line comment */
+\/\/    {
+    char c;
+    int i = 2;
+    buf[0] = '\/';
+    buf[1] = '\/';
+    while((c = input()) != '\n') {
+        buf[i] = c;
+        buf[i + 1] = 0;
+        i++;
+    }
+    unput(c);
+}
 
 \n      {
             LIST;
