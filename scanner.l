@@ -5,9 +5,10 @@
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
 #define token(t) {LIST; printf("<'%s'>\n",t);}
+#define tokenKeyword(t) {LIST; printf("<%s>\n",t);}
 #define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
 #define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
-#define tokenString(t,s) {LIST; printf("<%s: %s>\n",t,s);}
+#define tokenString(t,s) {LIST; printf("<%s%s>\n",t,s);}
 
 #define MAX_LINE_LENG 256
 
@@ -78,13 +79,15 @@ real        {plain_real}|{expreal}
 {keyword}   {
     char temp[16];
     TOUPPER(yytext, temp);
-    token(temp);
+    tokenKeyword(temp);
 }
 
     /* identifiers */
 {id}        {
-    tokenString("id", yytext);
-    insert(sTable, yytext);
+    tokenString("id: ", yytext);
+    char *temp = malloc(sizeof(char) * (yyleng + 1));
+    strcpy(temp, yytext);
+    insert(sTable, temp);
 }
 
     /* integer */
@@ -125,7 +128,8 @@ real        {plain_real}|{expreal}
 
         strcpy(temp, temp + 1);
         temp[strlen(temp) - 1] = 0;
-        tokenString("string", temp);
+        tokenString("string:", temp);
+        free(temp);
         unput(c);   // yytext no change
     }
 }
@@ -184,8 +188,9 @@ int main (int argc, char* argv[]) {
     sTable = create();
     yyin = fopen(argv[1], "r");
     yylex();
-    printf("Symblo Table:\n");
+    printf("\nSymblo Table:\n");
     dump(sTable);
+    free(sTable);
     fclose(yyin);
 }
 
