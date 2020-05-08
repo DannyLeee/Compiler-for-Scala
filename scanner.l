@@ -185,7 +185,7 @@ int main (int argc, char* argv[]) {
     sTable = create();
     yyin = fopen(argv[1], "r");
     yylex();
-    printf("\nSymblo Table:\n");
+    printf("\nSymbol Table:\n");
     dump(sTable);
     free(sTable);
     fclose(yyin);
@@ -218,17 +218,20 @@ int insert(Entry* entry, const char* str) {
 	if (entry == NULL)
 		return -1;
 	int i;
-	for (i = 0; entry != NULL; i++) {
-		if (entry->next == NULL)
-			break;
-		entry = entry->next;
-	}
-	Entry* new_entry = malloc(sizeof(Entry));
-	entry->next = new_entry;
-	entry->name = str;
-	new_entry->name = "";
-	new_entry->next = NULL;
-	return i;
+    if (lookup(entry, str) == -1) {
+        for (i = 0; entry != NULL; i++) {
+            if (entry->next == NULL)
+                break;
+            entry = entry->next;
+        }
+        Entry* new_entry = malloc(sizeof(Entry));
+        entry->next = new_entry;
+        entry->name = str;
+        new_entry->name = "";
+        new_entry->next = NULL;
+        return i;
+    }
+    return -1;
 }
 
 int dump(Entry* entry) {
