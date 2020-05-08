@@ -179,6 +179,7 @@ real        {plain_real}|{expreal}
             printf("bad character:'%s'\n",yytext);
             exit(-1);
         }
+
 %%
 int main (int argc, char* argv[]) {
     sTable = create();
@@ -188,6 +189,11 @@ int main (int argc, char* argv[]) {
     dump(sTable);
     free(sTable);
     fclose(yyin);
+}
+
+yywrap() {
+    printf("%d: %s\n", linenum, buf);
+    return 1;
 }
 
 Entry* create() {
