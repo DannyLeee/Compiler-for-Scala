@@ -4,7 +4,7 @@
 #include <ctype.h>
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
-#define token(t) {LIST; printf("<%s>\n",t);}
+#define token(t) {LIST; printf("<'%s'>\n",t);}
 #define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
 #define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
 #define tokenString(t,s) {LIST; printf("<%s: %s>\n",t,s);}
@@ -93,11 +93,48 @@ real        {plain_real}|{expreal}
     /* Real */
 {real}  {tokenFloat("real", yytext);}
 
+    /* string */
+\"[^"]*\"    {
+    char c = input();   // next character   // yytext no change
+    if (c == '\"') {
+        unput(c);
+        yymore();   // yytext no change            
+    }
+    else {
+        char * temp = malloc(sizeof(char) * (yyleng - 2 + 1));
+        strcpy(temp, yytext);
+        
+        char *l, *r;
+        for (int i = 0; i < strlen(temp); i++)
+        {
+            if (temp[i] == '\"' && temp[i + 1] == '\"')
+            {
+                l = malloc(sizeof(char) * (i + 1));
+                strcpy(l, temp);
+                l[i] = 0;
+                r = malloc(sizeof(char) * (strlen(temp) - i + 1));
+                strcpy(r, temp + i + 1);
+                
+                strcat(l, r);
+                memset(temp, 0, strlen(temp));
+                strcpy(temp,l);
+                free(l);
+                free(r);
+            }
+        }
+
+        strcpy(temp, temp + 1);
+        temp[strlen(temp) - 1] = 0;
+        tokenString("string", temp);
+        unput(c);   // yytext no change
+    }
+}
+
     /* single line comment */
 "//"    {
     char c;
-    bufPt = 2;
     LIST;
+    bufPt = 2;
     while((c = input()) != '\n') {
         buf[bufPt] = c;
         buf[bufPt + 1] = 0;
@@ -119,7 +156,7 @@ real        {plain_real}|{expreal}
 <C_COMMENT>\n   {
     LIST;
     printf("%d: %s", linenum++, buf);
-    buf[0] = '\0';
+    memset(buf, 0, MAX_LINE_LENG);
     bufPt = 0;
 }
 <C_COMMENT>.    {
@@ -130,7 +167,7 @@ real        {plain_real}|{expreal}
 \n      {
             LIST;
             printf("%d: %s", linenum++, buf);
-            buf[0] = '\0';
+            memset(buf, 0, MAX_LINE_LENG);
             bufPt = 0;
         }
 
