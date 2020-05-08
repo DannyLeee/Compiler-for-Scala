@@ -14,7 +14,6 @@
 
 int linenum = 1;
 char buf[MAX_LINE_LENG];
-int bufPt = 0;
 
 /* symbol table */
 typedef struct entry {
@@ -57,6 +56,7 @@ real        {plain_real}|{expreal}
 
 /* state */
 %x C_COMMENT
+%x COMMENT
 
 %%
     /* Delimiters */
@@ -135,22 +135,23 @@ real        {plain_real}|{expreal}
 }
 
     /* single line comment */
-"//"    {
-    char c;
+"//"        {
     LIST;
-    bufPt = 2;
-    while((c = input()) != '\n') {
-        buf[bufPt] = c;
-        buf[bufPt + 1] = 0;
-        bufPt++;
-    }
-    unput(c);
+    BEGIN(COMMENT);
 }
+
+<COMMENT>\n {
+    LIST;
+    printf("%d: %s", linenum++, buf);
+    memset(buf, 0, MAX_LINE_LENG);
+    BEGIN(INITIAL);
+}
+
+<COMMENT>.  {LIST;}
 
     /* multi lines comment */
 "/*"    {
     LIST;
-    bufPt = 2;
     BEGIN(C_COMMENT);
 }
 <C_COMMENT>"*/" {
@@ -161,18 +162,13 @@ real        {plain_real}|{expreal}
     LIST;
     printf("%d: %s", linenum++, buf);
     memset(buf, 0, MAX_LINE_LENG);
-    bufPt = 0;
 }
-<C_COMMENT>.    {
-    LIST;
-    bufPt++;
-}
+<C_COMMENT>.    {LIST;}
 
 \n      {
             LIST;
             printf("%d: %s", linenum++, buf);
             memset(buf, 0, MAX_LINE_LENG);
-            bufPt = 0;
         }
 
 [ \t]*  {LIST;}
