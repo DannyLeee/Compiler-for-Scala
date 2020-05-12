@@ -51,7 +51,7 @@ id          {alphabet}+({alphabet}*{digit}*)*
 /* number system */
 integer     {digit}+
 plain_real  {digit}+"."{digit}+ 
-expreal     [+-]?{digit}+"."{digit}+[Ee][+-]?{digit}+
+expreal     {digit}+"."{digit}+[Ee][+-]?{digit}+
 real        {plain_real}|{expreal}
 
 /* state */
@@ -67,13 +67,16 @@ real        {plain_real}|{expreal}
 {arithmetic}    {token(yytext);}
 
     /* Remainder */
-"%"     {token(yytext);}
+"%"             {token(yytext);}
 
     /* Relational */
-{relational}     {token(yytext);}
+{relational}    {token(yytext);}
 
     /* Logical */
-&&|"||"|!      {token(yytext);}
+&&|"||"|!       {token(yytext);}
+
+    /* assign */
+"="             {token(yytext);}
 
     /* Keywords*/
 {keyword}   {
@@ -94,10 +97,10 @@ real        {plain_real}|{expreal}
 {integer}   {tokenInteger("integer", yytext);}
 
     /* Real */
-{real}  {tokenFloat("real", yytext);}
+{real}      {tokenFloat("real", yytext);}
 
     /* string */
-\"[^"]*\"    {
+\"[^"^\n]*\"   {
     char c = input();   // next character   // yytext no change
     if (c == '\"') {
         unput(c);
