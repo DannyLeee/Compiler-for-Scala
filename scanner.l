@@ -46,7 +46,7 @@ digit       [0-9]
 
 /* identifier*/
 /* [a-zA-Z][a-zA-Z0-9]* */
-id          {alphabet}+({alphabet}*{digit}*)*
+id          {alphabet}({alphabet}|{digit})*
 
 /* number system */
 integer     {digit}+
@@ -100,16 +100,17 @@ real        {plain_real}|{expreal}
 {real}      {tokenFloat("real", yytext);}
 
     /* string */
-\"[^"^\n]*\"   {
+\"[^"\n]*\"   {
     char c = input();   // next character   // yytext no change
     if (c == '\"') {
         unput(c);
         yymore();   // yytext no change            
     }
     else {
-        char * temp = malloc(sizeof(char) * (yyleng - 2 + 1));
+        char * temp = malloc(sizeof(char) * (yyleng  + 1));
         strcpy(temp, yytext);
-        
+        strcpy(temp, temp + 1);
+        temp[strlen(temp) - 1] = 0;
         char *l, *r;
         for (int i = 0; i < strlen(temp); i++)
         {
@@ -128,9 +129,6 @@ real        {plain_real}|{expreal}
                 free(r);
             }
         }
-
-        strcpy(temp, temp + 1);
-        temp[strlen(temp) - 1] = 0;
         tokenString("string:", temp);
         free(temp);
         unput(c);   // yytext no change
@@ -178,7 +176,7 @@ real        {plain_real}|{expreal}
 
 .       {
             LIST;
-            printf("%d:%s\n", linenum+1, buf);
+            printf("%d:%s\n", linenum, buf);
             printf("bad character:'%s'\n",yytext);
             exit(-1);
         }
