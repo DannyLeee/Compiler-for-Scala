@@ -1,7 +1,6 @@
 %{
 /* C Declarations and Includes */
-#include <string.h>
-#include <ctype.h>
+#include "symbolTable.h"
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
 #define token(t) {LIST; printf("<'%s'>\n",t);}
@@ -14,19 +13,6 @@
 
 int linenum = 1;
 char buf[MAX_LINE_LENG];
-
-/* symbol table */
-typedef struct entry {
-	char* name;
-	struct entry* next;
-}Entry;
-
-Entry* create();
-int lookup(Entry* entry, const char* str);
-int insert(Entry* entry, const char* str);
-int dump(Entry* entry);
-
-Entry* sTable;
 %}
 
 /* regular definition */
@@ -195,53 +181,4 @@ int main (int argc, char* argv[]) {
 yywrap() {
     printf("%d: %s\n", linenum, buf);
     return 1;
-}
-
-Entry* create() {
-	Entry* sTable = malloc(sizeof(struct entry));
-	sTable->name = "";
-	sTable->next = NULL;
-	return sTable;
-}
-
-int lookup(Entry* entry, const char* str) {
-	if (entry == NULL)
-		return -1;
-	for (int i = 0; entry != NULL; i++) {
-		if (strcmp(entry->name, str) == 0)
-			return i;
-		entry = entry->next;
-	}
-	return -1;
-}
-
-int insert(Entry* entry, const char* str) {
-	if (entry == NULL)
-		return -1;
-	int i;
-    if (lookup(entry, str) == -1) {
-        for (i = 0; entry != NULL; i++) {
-            if (entry->next == NULL)
-                break;
-            entry = entry->next;
-        }
-        Entry* new_entry = malloc(sizeof(Entry));
-        entry->next = new_entry;
-        entry->name = str;
-        new_entry->name = "";
-        new_entry->next = NULL;
-        return i;
-    }
-    return -1;
-}
-
-int dump(Entry* entry) {
-	if (entry == NULL)
-		return -1;
-	int i;
-	for (i = 0; entry->next != NULL; i++) {
-		printf("%s\n", entry->name);
-		entry = entry->next;
-	}
-	return i;
 }
