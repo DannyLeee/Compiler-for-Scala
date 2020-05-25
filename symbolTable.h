@@ -13,9 +13,9 @@ struct entry {
 
 struct table {
     map <string, entry> entry_;
+    int lookup(const string &str);
+    int insert(const string &str, const int &val);
+    void dump();
 };
 
 table create();
-int lookup(const table &t, const string &str);
-int insert(table &t, const string &str, const int &val);
-void dump(const table &t);

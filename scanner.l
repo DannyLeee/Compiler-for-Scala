@@ -78,7 +78,7 @@ real        {plain_real}|{expreal}
     tokenString("id: ", yytext);
     string temp = yytext;
     
-    insert(sTable, temp, 0);
+    sTable.insert(temp, 0);
 }
 
     /* integer */
@@ -175,7 +175,7 @@ int main (int argc, char* argv[]) {
     yyin = fopen(argv[1], "r");
     yylex();
     printf("\nSymbol Table:\n");
-    dump(sTable);
+    sTable.dump();
     fclose(yyin);
 }
 
