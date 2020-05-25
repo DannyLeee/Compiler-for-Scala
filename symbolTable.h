@@ -1,21 +1,21 @@
-#ifndef STABLE
-#define STABLE
-
-// #include <stdlib.h>
-// #include <cstdlib>
 #include <string.h>
-#include <ctype.h>
-// #include <stdio.h>
 #include <iostream>
+#include <vector>
+#include <map>
+#include <string>
+
+using namespace std;
 
 /* symbol table entry */
-typedef struct entry {
-	char* name;
-	struct entry* next;
-}Entry;
+struct entry {
+	int value;
+};
 
-Entry* create();
-int lookup(Entry* entry, const char* str);
-int insert(Entry* entry, char* str);
-int dump(Entry* entry);
-#endif
+struct table {
+    map <string, entry> entry_;
+};
+
+table create();
+int lookup(const table &t, const string &str);
+int insert(table &t, const string &str, const int &val);
+void dump(const table &t);

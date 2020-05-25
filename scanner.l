@@ -13,7 +13,8 @@
 
 int linenum = 1;
 char buf[MAX_LINE_LENG];
-Entry* sTable;
+vector <table> sTableList;
+table sTable;
 %}
 
 /* regular definition */
@@ -75,9 +76,9 @@ real        {plain_real}|{expreal}
     /* identifiers */
 {id}        {
     tokenString("id: ", yytext);
-    char *temp = new char[yyleng + 1];
-    strcpy(temp, yytext);
-    insert(sTable, temp);
+    string temp = yytext;
+    
+    insert(sTable, temp, 0);
 }
 
     /* integer */
@@ -175,7 +176,6 @@ int main (int argc, char* argv[]) {
     yylex();
     printf("\nSymbol Table:\n");
     dump(sTable);
-    delete(sTable);
     fclose(yyin);
 }
 
