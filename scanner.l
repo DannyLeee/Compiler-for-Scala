@@ -112,12 +112,12 @@ real        {plain_real}|{expreal}
                 strcat(l, r);
                 memset(temp, 0, strlen(temp));
                 strcpy(temp,l);
-                free(l);
-                free(r);
+                delete(l);
+                delete(r);
             }
         }
         tokenString("string:", temp);
-        free(temp);
+        delete(temp);
         ungetc(c, yyin);   // yytext no change
     }
 }
@@ -175,7 +175,7 @@ int main (int argc, char* argv[]) {
     yylex();
     printf("\nSymbol Table:\n");
     dump(sTable);
-    free(sTable);
+    delete(sTable);
     fclose(yyin);
 }
 
