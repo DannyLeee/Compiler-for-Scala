@@ -1,8 +1,8 @@
 #include "symbolTable.h"
-// using namespace std;
+using namespace std;
 
 Entry* create() {
-	Entry* sTable = malloc(sizeof(struct entry));
+	entry* sTable = new entry();
 	sTable->name = "";
 	sTable->next = NULL;
 	return sTable;
@@ -19,7 +19,7 @@ int lookup(Entry* entry, const char* str) {
 	return -1;
 }
 
-int insert(Entry* entry, const char* str) {
+int insert(Entry* entry, char* str) {
 	if (entry == NULL)
 		return -1;
 	int i;
@@ -29,7 +29,7 @@ int insert(Entry* entry, const char* str) {
                 break;
             entry = entry->next;
         }
-        Entry* new_entry = malloc(sizeof(Entry));
+        Entry* new_entry = new Entry();
         entry->next = new_entry;
         entry->name = str;
         new_entry->name = "";
@@ -44,7 +44,7 @@ int dump(Entry* entry) {
 		return -1;
 	int i;
 	for (i = 0; entry->next != NULL; i++) {
-		printf("%s\n", entry->name);
+		cout << entry->name << endl;
 		entry = entry->next;
 	}
 	return i;

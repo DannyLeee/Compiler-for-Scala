@@ -13,6 +13,7 @@
 
 int linenum = 1;
 char buf[MAX_LINE_LENG];
+Entry* sTable;
 %}
 
 /* regular definition */
@@ -74,7 +75,7 @@ real        {plain_real}|{expreal}
     /* identifiers */
 {id}        {
     tokenString("id: ", yytext);
-    char *temp = malloc(sizeof(char) * (yyleng + 1));
+    char *temp = new char[yyleng + 1];
     strcpy(temp, yytext);
     insert(sTable, temp);
 }
@@ -86,14 +87,14 @@ real        {plain_real}|{expreal}
 {real}      {tokenFloat("real", yytext);}
 
     /* string */
-\"[^"\n]*\"   {
-    char c = input();   // next character   // yytext no change
+\"[^"^\n]*\"   {
+    char c = getc(yyin);   // next character   // yytext no change
     if (c == '\"') {
-        unput(c);
+        ungetc(c, yyin);
         yymore();   // yytext no change            
     }
     else {
-        char * temp = malloc(sizeof(char) * (yyleng  + 1));
+        char * temp = new char[yyleng  + 1];
         strcpy(temp, yytext);
         strcpy(temp, temp + 1);
         temp[strlen(temp) - 1] = 0;
@@ -102,10 +103,10 @@ real        {plain_real}|{expreal}
         {
             if (temp[i] == '\"' && temp[i + 1] == '\"')
             {
-                l = malloc(sizeof(char) * (i + 1));
+                l = new char[i + 1];
                 strcpy(l, temp);
                 l[i] = 0;
-                r = malloc(sizeof(char) * (strlen(temp) - i + 1));
+                r = new char[strlen(temp) - i + 1];
                 strcpy(r, temp + i + 1);
                 
                 strcat(l, r);
@@ -117,7 +118,7 @@ real        {plain_real}|{expreal}
         }
         tokenString("string:", temp);
         free(temp);
-        unput(c);   // yytext no change
+        ungetc(c, yyin);   // yytext no change
     }
 }
 
@@ -178,7 +179,7 @@ int main (int argc, char* argv[]) {
     fclose(yyin);
 }
 
-yywrap() {
+int yywrap() {
     printf("%d: %s\n", linenum, buf);
     return 1;
 }
