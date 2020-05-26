@@ -1,3 +1,6 @@
 lex.yy.c
 scanner
 *.scala
+parser
+y.h
+y.tab.cpp
