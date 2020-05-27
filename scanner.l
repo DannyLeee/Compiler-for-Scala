@@ -1,6 +1,6 @@
 %{
 /* C Declarations and Includes */
-#include "symbolTable.h"
+
 #include "y.h"
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
@@ -14,17 +14,12 @@
 
 int linenum = 1;
 char buf[MAX_LINE_LENG];
-vector <table> sTableList;
-table sTable;
 %}
 
 /* regular definition */
 /* symbol */
 delimiters  [,:.;()\[\]{}]
 arithmetic   [+\-*/]
-
-/* keyword */
-keyword     boolean|break|char|case|class|continue|def|do|else|exit|false|float|for|if|int|null|object|print|println|repeat|return|string|to|true|type|val|var|while
 
 /* relational */
 relational  <|<=|>=|>|==|!=
@@ -68,18 +63,152 @@ real        {plain_real}|{expreal}
 "="             {token(yytext);}
 
     /* Keywords*/
-{keyword}   {
-    char temp[16];
-    TOUPPER(yytext, temp);
-    tokenKeyword(temp);
+boolean {
+    tokenKeyword(yytext);
+    return BOOLEAN;
+}
+
+break   {
+    tokenKeyword(yytext);
+    return BREAK;
+}
+
+char    {
+    tokenKeyword(yytext);
+    return CHAR;
+}
+
+case    {
+    tokenKeyword(yytext);
+    return CASE;
+}
+
+class   {
+    tokenKeyword(yytext);
+    return CLASS;
+}
+
+continue    {
+    tokenKeyword(yytext);
+    return CONTINUE;
+}
+
+def {
+    tokenKeyword(yytext);
+    return DEF;
+}
+
+do  {
+    tokenKeyword(yytext);
+    return DO;
+}
+
+else    {
+    tokenKeyword(yytext);
+    return ELSE;
+}
+
+exit    {
+    tokenKeyword(yytext);
+    return EXIT;
+}
+
+false   {
+    tokenKeyword(yytext);
+    return FALSE;
+}
+
+float   {
+    tokenKeyword(yytext);
+    return FLOAT;
+}
+
+for {
+    tokenKeyword(yytext);
+    return FOR;
+}
+
+if  {
+    tokenKeyword(yytext);
+    return IF;
+}
+
+int {
+    tokenKeyword(yytext);
+    return INT;
+}
+
+null    {
+    tokenKeyword(yytext);
+    return NULL;
+}
+
+object  {
+    tokenKeyword(yytext);
+    return OBJECT;
+}
+
+print   {
+    tokenKeyword(yytext);
+    return PRINT;
+}
+
+println {
+    tokenKeyword(yytext);
+    return PRINTLN;
+}
+
+repeat  {
+    tokenKeyword(yytext);
+    return REPEAT;
+}
+
+return  {
+    tokenKeyword(yytext);
+    return RETURN;
+}
+
+string  {
+    tokenKeyword(yytext);
+    return STRING;
+}
+
+to  {
+    tokenKeyword(yytext);
+    return TO;
+}
+
+true    {
+    tokenKeyword(yytext);
+    return TRUE;
+}
+
+type    {
+    tokenKeyword(yytext);
+    return TYPE;
+}
+
+val {
+    tokenKeyword(yytext);
+    return VAL;
+}
+
+var {
+    tokenKeyword(yytext);
+    return VAR;
+}
+
+while   {
+    tokenKeyword(yytext);
+    return WHILE;
 }
 
     /* identifiers */
 {id}        {
     tokenString("id: ", yytext);
     string temp = yytext;
-    
-    sTable.insert(temp, 0);
+    // sTable.insert(temp, 0);
+    return ID;
 }
 
     /* integer */
@@ -121,6 +250,7 @@ real        {plain_real}|{expreal}
         tokenString("string:", temp);
         delete(temp);
         ungetc(c, yyin);   // yytext no change
+        return 290;
     }
 }
 
