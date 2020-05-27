@@ -158,6 +158,11 @@ println {
     return PRINTLN;
 }
 
+read    {
+    tokenKeyword(yytext);
+    return READ;
+}
+
 repeat  {
     tokenKeyword(yytext);
     return REPEAT;
