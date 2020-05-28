@@ -4,7 +4,7 @@
 #include "y.h"
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
-#define token(t) {LIST; printf("<'%s'>\n",t);}
+#define token(t) {LIST; printf("<'%s'>\n",t); return t;}
 #define tokenKeyword(t) {LIST; printf("<%s>\n",t);}
 #define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
 #define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
@@ -20,9 +20,6 @@ char buf[MAX_LINE_LENG];
 /* symbol */
 delimiters  [,:.;()\[\]{}]
 arithmetic   [+\-*/]
-
-/* relational */
-relational  <|<=|>=|>|==|!=
 
 /* basic component */
 alphabet    [a-zA-Z]
@@ -51,13 +48,20 @@ real        {plain_real}|{expreal}
 {arithmetic}    {token(yytext);}
 
     /* Remainder */
-"%"             {token(yytext);}
+    // "%"             {token(yytext);}
 
     /* Relational */
-{relational}    {token(yytext);}
+<               {return LES;}
+<=              {return LEQ;}
+>=              {return GEQ;}
+>               {return GRT;}
+==              {return EQU;}
+!=              {return NEQ;}
 
     /* Logical */
-&&|"||"|!       {token(yytext);}
+&&              {return AND;}
+\|\|            {return OR;}
+!               {token(yytext);}
 
     /* assign */
 "="             {token(yytext);}
