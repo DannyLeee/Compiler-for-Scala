@@ -48,15 +48,15 @@ real        {plain_real}|{expreal}
 {arithmetic}    {token(yytext);}
 
     /* Remainder */
-    // "%"             {token(yytext);}
+    /* "%"             {token(yytext);}*/
 
     /* Relational */
-<               {return LES;}
-<=              {return LEQ;}
->=              {return GEQ;}
->               {return GRT;}
-==              {return EQU;}
-!=              {return NEQ;}
+"<"               {return LES;}
+"<="              {return LEQ;}
+">="              {return GEQ;}
+">"               {return GRT;}
+"=="              {return EQU;}
+"!="              {return NEQ;}
 
     /* Logical */
 &&              {return AND;}
