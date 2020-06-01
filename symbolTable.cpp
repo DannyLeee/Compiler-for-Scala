@@ -60,6 +60,61 @@ entry& entry::operator=(const entry& e)
 	return *this;
 }
 
+entry entry::operator+(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(REAL_, this->val.rVal + e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(REAL_, this->val.rVal + e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(REAL_, this->val.iVal + e.val.rVal, false);
+	else
+		return entry(INT_, this->val.iVal + e.val.iVal, false);
+}
+
+entry entry::operator-(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(REAL_, this->val.rVal - e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(REAL_, this->val.rVal - e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(REAL_, this->val.iVal - e.val.rVal, false);
+	else
+		return entry(INT_, this->val.iVal - e.val.iVal, false);
+}
+
+entry entry::operator*(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(REAL_, this->val.rVal * e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(REAL_, this->val.rVal * e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(REAL_, this->val.iVal * e.val.rVal, false);
+	else
+		return entry(INT_, this->val.iVal * e.val.iVal, false);
+}
+
+entry entry::operator/(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(REAL_, this->val.rVal / e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(REAL_, this->val.rVal / e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(REAL_, this->val.iVal / e.val.rVal, false);
+	else
+		return entry(REAL_, this->val.iVal / e.val.iVal, false);
+}
+
+entry entry::operator%(const entry& e) {
+	return entry(INT_, this->val.iVal % e.val.iVal, false);
+}
+
+entry entry::operator-() {
+	if (this->dType == INT_)
+		return entry(INT_, -this->val.iVal, false);
+	else if (this->dType == REAL_)
+		return entry(REAL_, -this->val.rVal, false);
+}
+
 int table::lookup(const string& str) {
 	if (this->entry_.find(str) != this->entry_.end())
 		return 1;

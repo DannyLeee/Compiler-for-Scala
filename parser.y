@@ -32,9 +32,9 @@ int current_t;
 
 %token NTYPE
 
-%type <entryPt> constant_exp num
-%type <boolVal> bool_exp
+%type <entryPt> constant_exp num exp bool_exp
 %type <typeVal> type_
+%type <strVal> var_name
 
 %token <strVal> STRING_ ID
 %token <intVal> INTEGER
@@ -114,7 +114,7 @@ const_declar:   VAL ID type_ '=' constant_exp
                         }
                         else
                         {
-                            yyerror("type error");
+                            yyerror("type error\n");
                         }
                     }
                 };
@@ -149,15 +149,20 @@ var_declar:     VAR ID type_
                         }
                         else
                         {
-                            yyerror("type error");
+                            yyerror("type error\n");
                         }
                     }
                 };
 
 array_declar:   VAR ID type_ '[' INTEGER ']'
                 {
-                    // TODO
                     // insert symbol table
+                    if ($3 == NTYPE)
+                        yyerror("array don't has type\n");
+                    else
+                    {
+                        // TODO: add new union vector in entry to store array type
+                    }
                 };
 
     /* Program Units */
@@ -184,47 +189,82 @@ stmts:          exp | simple_stmts | block |
     // TODO ??
 var_name:       ID
                 {
-                    // TODO: lookup the symbol table and return with type is variable else error
+                    // lookup the symbol table and return variable's name
+                    if (sTableList[current_t].lookup(*$1) == -1)
+                        yyerror("no variable name\n");
+                    else
+                    {
+                        $$ = $1;
+                    }
                 };
-exp:            constant_exp |
-                var_name |
-                func_invocate |
-                int_exp |
-                bool_exp
+exp:            num 
                 {
-                    // TODO
-                    // $$ = $1;
-                } |
-                '(' exp ')' |
-                '[' int_exp ']'
-                {
-                    // $$ = $2;
-                };
-    // TODO ??
-int_exp:        num 
-                {
-                    // $$ = $1->intVal;
+                    $$ = $1;
                 } |
                 exp '+' exp
                 {
-                    // TODO
-                    // $$ = $1->intVal + $3->intVal;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 + *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp '-' exp
                 {
-                    // TODO
-                    // $$ = $1->intVal - $3->intVal;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    {
+                        *$$ = *$1 - *$3;
+                    }
+                    else 
+                    {
+                        yyerror("type error\n");
+                    }
                 } |
                 exp '*' exp 
                 {
-                    // TODO
-                    // $$ = $1->intVal * $3->intVal;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 * *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp '/' exp 
                 {
-                    // TODO
-                    // $$ = $1->intVal / $3->intVal;
-                };
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 / *$3;
+                    else 
+                        yyerror("type error\n");
+                } |
+                exp '%' exp
+                {
+                    if ($1->dType == INT_ && $3->dType == INT_)
+                        *$$ = *$1 % *$3;
+                    else 
+                        yyerror("type error\n");
+                } |
+                '-' exp %prec UMINUS
+                {
+                    if ($2->dType == INT_ || $2->dType == REAL_)
+                        *$$ = -(*$2);
+                    else 
+                        yyerror("type error\n");
+                } |
+                constant_exp |
+                bool_exp
+                {
+                    $$ = $1;
+                } |
+                '(' exp ')'
+                {
+                    $$ = $2;
+                } |
+                '[' exp ']'
+                {
+                    // check [exp] is int or error
+                    if ($2->dType == INT_)
+                        $$ = $2;
+                    else
+                        yyerror("type error\n");
+                } |
+                func_invocate | var_name{ /* todo ?*/ };
 
     // simple
 simple_stmts:   RETURN |
@@ -236,8 +276,9 @@ simple_stmts:   RETURN |
                 {
                     // TODO: assign the value to ID
                 } |
-                ID '[' int_exp ']' '=' exp |
+                ID '[' exp ']' '=' exp |
                 {
+                    // TODO: check [exp] is int or errot
                     // TODO: assign the value to ID[i]
                 };
 
@@ -355,5 +396,5 @@ int main(int argc, char *argv[])
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
-        yyerror("Parsing error !");     /* syntax error */
+        yyerror("Parsing error !\n");     /* syntax error */
 }
