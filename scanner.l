@@ -4,7 +4,7 @@
 #include "y.h"
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
-#define token(t) {LIST; printf("<'%s'>\n",t); return t;}
+#define token(t) {LIST; printf("<'%s'>\n",t); return *t;}
 #define tokenKeyword(t) {LIST; printf("<%s>\n",t);}
 #define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
 #define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
@@ -144,7 +144,7 @@ int {
 
 null    {
     tokenKeyword(yytext);
-    return NULL;
+    return NULL_;
 }
 
 object  {
@@ -259,7 +259,7 @@ while   {
         tokenString("string:", temp);
         delete(temp);
         ungetc(c, yyin);   // yytext no change
-        return 290;
+        return STRING_;
     }
 }
 

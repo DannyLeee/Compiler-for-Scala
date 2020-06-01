@@ -7,11 +7,10 @@
 using namespace std;
 
 /* symbol table entry */
-enum dataType { INT_, REAL_, CHAR_, STARING_, BOOLEAN_ };
+enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_ };
 
 struct entry {
 	enum dataType dType;
-	
 	union V
 	{
 		int iVal;
@@ -27,16 +26,18 @@ struct entry {
 		V(bool b) { bVal = b; }
 		~V() {}
 	}val;
+	bool isConst;
 	
 	entry() {}
-	entry(const dataType& t,const union V& v);
-	entry& operator= (entry& e);
+	entry(const dataType& t, const union V& v, const bool &isCon);
+	entry& operator= (const entry& e);
 };
 
 
 struct table {
 	map <string, entry> entry_;
 	int lookup(const string& str);
-	int insert(const string& str, const dataType& dType, const union entry::V& val);
+	int insert(const string& str, const dataType& dType, const union entry::V& val, const bool &isCon);
+	int insert(const string& str, const entry& e);
 	void dump();
 };

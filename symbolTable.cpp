@@ -1,6 +1,6 @@
 #include "symbolTable.h"
 
-entry::entry(const dataType& t, const union V& v) : dType(t) {
+entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t), isConst(isCon) {
 	switch (t)
 	{
 	case INT_:
@@ -12,7 +12,7 @@ entry::entry(const dataType& t, const union V& v) : dType(t) {
 	case CHAR_:
 		val.cVal = v.cVal;
 		break;
-	case STARING_:
+	case STR_:
 		val.sVal = v.sVal;
 		break;
 	case BOOLEAN_:
@@ -24,7 +24,7 @@ entry::entry(const dataType& t, const union V& v) : dType(t) {
 	}
 }
 
-entry& entry::operator=(entry& e)
+entry& entry::operator=(const entry& e)
 {
 	dType = e.dType;
 	val.iVal = e.val.iVal;
@@ -42,10 +42,18 @@ int table::lookup(const string& str) {
 	return -1;
 }
 
-int table::insert(const string& str, const dataType& dType, const union entry::V& val) {
+int table::insert(const string& str, const dataType& dType, const union entry::V& val,const bool &isCon) {
 	if (this->lookup(str) == -1) {
-		entry temp(dType, val);
+		entry temp(dType, val, isCon);
 		this->entry_[str] = temp;
+		return 1;
+	}
+	return -1;
+}
+
+int table::insert(const string & str, const entry& e) {
+	if (this->lookup(str) == -1) {
+		this->entry_[str] = e;
 		return 1;
 	}
 	return -1;
