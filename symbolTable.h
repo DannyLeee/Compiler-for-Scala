@@ -30,6 +30,7 @@ struct entry {
 	
 	entry() {}
 	entry(const dataType& t, const union V& v, const bool &isCon);
+	entry(const dataType& t);
 	entry& operator= (const entry& e);
 };
 

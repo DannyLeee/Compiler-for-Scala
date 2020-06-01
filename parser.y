@@ -100,7 +100,6 @@ type_:          ':' CHAR
 
 const_declar:   VAL ID type_ '=' constant_exp
                 {
-                    // TODO
                     // insert symbol table
                     if ($3 == NTYPE)
                     {
@@ -120,11 +119,39 @@ const_declar:   VAL ID type_ '=' constant_exp
                     }
                 };
 
-var_declar:     VAR ID type_ |
+var_declar:     VAR ID type_
+                {
+                    // insert symbol table
+                    if ($3 == NTYPE)
+                    {
+                        entry temp;
+                        sTableList[current_t].insert(*$2, temp);
+                    }
+                    else
+                    {
+                        entry temp($3);
+                        sTableList[current_t].insert(*$2, temp);
+                    }
+                } |
                 VAR ID type_ '=' constant_exp
                 {
-                    // TODO
                     // insert symbol table
+                    if ($3 == NTYPE)
+                    {
+                        sTableList[current_t].insert(*$2, *$5);
+                    }
+                    else
+                    {
+                        if ($3 == $5->dType)
+                        {
+                            Trace("Reducing to constant declar\n");
+                            sTableList[current_t].insert(*$2, *$5);
+                        }
+                        else
+                        {
+                            yyerror("type error");
+                        }
+                    }
                 };
 
 array_declar:   VAR ID type_ '[' INTEGER ']'

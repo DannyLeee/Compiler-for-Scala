@@ -24,6 +24,30 @@ entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t),
 	}
 }
 
+entry::entry(const dataType& t) : dType(t), isConst(false) {
+	switch (t)
+	{
+	case INT_:
+		val.iVal = 0;
+		break;
+	case REAL_:
+		val.rVal = 0.0;
+		break;
+	case CHAR_:
+		val.cVal = '\0';
+		break;
+	case STR_:
+		val.sVal = new string("");
+		break;
+	case BOOLEAN_:
+		val.bVal = true;
+		break;
+	default:
+		val.iVal = 0;
+		break;
+	}
+}
+
 entry& entry::operator=(const entry& e)
 {
 	dType = e.dType;
