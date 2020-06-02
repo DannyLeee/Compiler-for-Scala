@@ -70,7 +70,6 @@ constant_exp:   STRING_
                     $$ = temp;
                 };
 
-// TODO: invalid conversion from ‘int’ to ‘dataType’
 type_:          ':' CHAR
                 {
                     $$ = CHAR_;
@@ -167,20 +166,29 @@ array_declar:   VAR ID type_ '[' exp ']'
                 };
 
     /* Program Units */
-_0_or_more_CONST_VAR:  const_declar | var_declar | array_declar |;
+_0_or_more_CONST_VAR:  const_declar | var_declar | array_declar | ;
 _1_or_more_method:   method_declar | method_declar _1_or_more_method;
 
-obj_declar:     OBJECT ID '{' _0_or_more_CONST_VAR _1_or_more_method '}'
+obj_declar:     OBJECT ID '{'
                 {
-                    // TODO: open a new sumbol table
+                    // open a new symbol table
+                    table new_t;
+                    sTableList.push_back(new_t);
+                } _0_or_more_CONST_VAR _1_or_more_method '}'
+                {
+                    // delete the table in block
+                    sTableList.pop_back();
                 };
 
-formal_arguments: ID type_ formal_arguments | ;
+formal_arguments:   ID type_ formal_arguments
+                    {
+                        // TODO
+                    } | ;
 
 _0_or_more_stmts: stmts _0_or_more_stmts | ;
-method_declar:  DEF ID '(' formal_arguments ')' type_ '{' _0_or_more_CONST_VAR  _0_or_more_stmts '}'
+method_declar:  DEF ID '(' formal_arguments ')' type_ block
                 {
-                    // TODO: insert symbol table
+                    // TODO ??
                 };
 
     /* Statements */
@@ -300,10 +308,16 @@ func_invocate:  ID '(' comma_separate_exp ')'
                 };
 
     // block
-_1_or_more_stmts: stmts | stmts _1_or_more_stmts;
-block:          '{' _0_or_more_CONST_VAR _1_or_more_stmts '}'
+block:          '{'
                 {
-                    // TODO: new a symbol table
+                    // new a symbol table
+                    table new_t;
+                    sTableList.push_back(new_t);
+                    current_t +=1;
+                } _0_or_more_CONST_VAR _0_or_more_stmts '}'
+                {
+                    // delete the table in block
+                    sTableList.pop_back();
                 };
 
     // conditional
