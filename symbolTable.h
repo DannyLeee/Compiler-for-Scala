@@ -7,7 +7,7 @@
 using namespace std;
 
 /* symbol table entry */
-enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_ };
+enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_, NAME_ };
 
 struct entry {
 	enum dataType dType;

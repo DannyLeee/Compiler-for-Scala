@@ -19,7 +19,6 @@ int current_t;
     string* strVal;
     double realVal;
     bool boolVal;
-    dataType typeVal;
 }
 
 
@@ -32,9 +31,8 @@ int current_t;
 
 %token NTYPE
 
-%type <entryPt> constant_exp num exp bool_exp
-%type <typeVal> type_
-%type <strVal> var_name
+%type <entryPt> constant_exp num exp bool_exp var_name
+%type <intVal> type_
 
 %token <strVal> STRING_ ID
 %token <intVal> INTEGER
@@ -59,7 +57,6 @@ program:    obj_declar program |
     // any type of the variable expression
 constant_exp:   STRING_
                 {
-                    
                     entry* temp = new entry(STR_, new string(*$1), true);
                     $$ = temp;
                 } |
@@ -129,7 +126,8 @@ var_declar:     VAR ID type_
                     }
                     else
                     {
-                        entry temp($3);
+                        dataType t = static_cast <dataType> ($3);   // int to enum
+                        entry temp(t);
                         sTableList[current_t].insert(*$2, temp);
                     }
                 } |
@@ -186,17 +184,18 @@ method_declar:  DEF ID '(' formal_arguments ')' type_ '{' _0_or_more_CONST_VAR  
 stmts:          exp | simple_stmts | block |
                 conditional | loop | procedure_invocate ;
 
-    // TODO ??
 var_name:       ID
                 {
                     // lookup the symbol table and return variable's name
-                    if (sTableList[current_t].lookup(*$1) == -1)
-                        yyerror("no variable name\n");
-                    else
+                    if (sTableList[current_t].lookup(*$1) != -1)
                     {
-                        $$ = $1;
+                        entry temp(NAME_, $1, true);
+                        *$$ = temp; // return an entry dType: NAME_, value: ID 
                     }
+                    else
+                        yyerror("no variable name\n");
                 };
+
 exp:            num 
                 {
                     $$ = $1;
@@ -247,8 +246,7 @@ exp:            num
                     else 
                         yyerror("type error\n");
                 } |
-                constant_exp |
-                bool_exp
+                constant_exp | bool_exp | func_invocate | var_name
                 {
                     $$ = $1;
                 } |
@@ -263,8 +261,7 @@ exp:            num
                         $$ = $2;
                     else
                         yyerror("type error\n");
-                } |
-                func_invocate | var_name{ /* todo ?*/ };
+                };
 
     // simple
 simple_stmts:   RETURN |
