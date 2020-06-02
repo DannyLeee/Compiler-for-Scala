@@ -268,18 +268,26 @@ exp:            num
 
     // simple
 simple_stmts:   RETURN |
-                READ ID |
+                READ var_name |
                 PRINT exp |
                 RETURN exp |
-                PRINTLN exp |
-                ID '=' exp 
+                PRINTLN exp
                 {
-                    // TODO: assign the value to ID
+                    Trace("Reducing to simple statement\n");
                 } |
-                ID '[' exp ']' '=' exp |
+                var_name '=' exp 
                 {
-                    // TODO: check [exp] is int or errot
-                    // TODO: assign the value to ID[i]
+                    // assign the value to ID
+                    sTableList[current_t].update(*$1->val.sVal, *$3, 0, false);
+                } |
+                var_name '[' exp ']' '=' exp
+                {
+                    // check [exp] is int or error
+                    if ($3->dType == INT_)
+                        // assign the value to ID[i]
+                        sTableList[current_t].update(*$1->val.sVal, *$6, $3->val.iVal, true);
+                    else
+                        yyerror("not integer in []\n");
                 };
 
     // function invocation

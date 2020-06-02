@@ -223,29 +223,37 @@ entry entry::operator-() {
 		return entry(REAL_, -this->val.rVal, false);
 }
 
-int table::lookup(const string& str) {
-	if (this->entry_.find(str) != this->entry_.end())
+int table::lookup(const string& name) {
+	if (this->entry_.find(name) != this->entry_.end() || this->array_.find(name) != this->array_.end())
 		return 1;
 	return -1;
 }
 
-int table::insert(const string & str, const entry& e) {
-	if (this->lookup(str) == -1) {
-		this->entry_[str] = e;
+int table::insert(const string & name, const entry& e) {
+	if (this->lookup(name) == -1) {
+		this->entry_[name] = e;
 		return 1;
 	}
 	return -1;
 }
 
-int table::insert(const string& str, const dataType& t, const int& size) {
-	if (this->lookup(str) == -1) {
+int table::insert(const string& name, const dataType& t, const int& size) {
+	if (this->lookup(name) == -1) {
 		vector<entry> v;
 		for (int i = 0; i < size; i++)
 			v.push_back(entry(t));
-		this->array_[str] = v;
+		this->array_[name] = v;
 		return 1;
 	}
 	return -1;
+}
+
+void table::update(const string& name, const entry& e, const int& position, const bool& isArr) {
+	if (isArr)
+		this->array_[name][position] = e;
+	else
+		this->entry_[name] = e;
+	return;
 }
 
 void table::dump() {
