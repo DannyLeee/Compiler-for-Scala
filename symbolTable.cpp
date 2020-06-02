@@ -229,18 +229,20 @@ int table::lookup(const string& str) {
 	return -1;
 }
 
-int table::insert(const string& str, const dataType& dType, const union entry::V& val,const bool &isCon) {
+int table::insert(const string & str, const entry& e) {
 	if (this->lookup(str) == -1) {
-		entry temp(dType, val, isCon);
-		this->entry_[str] = temp;
+		this->entry_[str] = e;
 		return 1;
 	}
 	return -1;
 }
 
-int table::insert(const string & str, const entry& e) {
+int table::insert(const string& str, const dataType& t, const int& size) {
 	if (this->lookup(str) == -1) {
-		this->entry_[str] = e;
+		vector<entry> v;
+		for (int i = 0; i < size; i++)
+			v.push_back(entry(t));
+		this->array_[str] = v;
 		return 1;
 	}
 	return -1;

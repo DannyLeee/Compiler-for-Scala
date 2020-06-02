@@ -46,14 +46,14 @@ struct entry {
 	entry operator&& (const entry& e);
 	entry operator|| (const entry& e);
 	entry operator!();
-	entry operator- ();
+	entry operator-();
 };
-
 
 struct table {
 	map <string, entry> entry_;
+	map <string, vector<entry>> array_;
 	int lookup(const string& str);
-	int insert(const string& str, const dataType& dType, const union entry::V& val, const bool &isCon);
 	int insert(const string& str, const entry& e);
+	int insert(const string& str, const dataType& t, const int& size);
 	void dump();
 };

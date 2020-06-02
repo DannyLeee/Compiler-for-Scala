@@ -221,10 +221,16 @@ while   {
 }
 
     /* integer */
-{integer}   {tokenInteger("integer", yytext);}
+{integer}   {
+    tokenInteger("integer", yytext);
+    return INTEGER;
+}
 
     /* Real */
-{real}      {tokenFloat("real", yytext);}
+{real}      {
+    tokenFloat("real", yytext);
+    return REAL;
+}
 
     /* string */
 \"[^"^\n]*\"   {

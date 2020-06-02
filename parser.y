@@ -152,14 +152,17 @@ var_declar:     VAR ID type_
                     }
                 };
 
-array_declar:   VAR ID type_ '[' INTEGER ']'
+array_declar:   VAR ID type_ '[' exp ']'
                 {
                     // insert symbol table
                     if ($3 == NTYPE)
                         yyerror("array don't has type\n");
+                    else if ($5->dType != INT_)
+                        yyerror("not integer inside []\n");
                     else
                     {
-                        // TODO: add new union vector in entry to store array type
+                        dataType t = static_cast <dataType> ($3);   // int to enum
+                        sTableList[current_t].insert(*$2, t, $5->val.iVal);
                     }
                 };
 
