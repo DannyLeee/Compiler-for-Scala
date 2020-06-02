@@ -301,48 +301,70 @@ block:          '{' _0_or_more_CONST_VAR _1_or_more_stmts '}'
     // conditional
 bool_exp:       '!' exp 
                 {
-                    // TODO
-                    // $$ = !$2;
+                    if ($2->dType == BOOLEAN_)
+                        *$$ = !(*$2);
+                    else
+                        yyerror("type error\n");
                 } |
                 exp LES exp 
                 {
-                    // TODO
-                    // $$ = $1 < $3;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 < *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp GRT exp 
                 {
-                    // TODO
-                    // $$ = $1 > $3;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 > *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp LEQ exp 
                 {
-                    // TODO
-                    // $$ = $1 <= $3;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 <= *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp EQU exp 
                 {
-                    // TODO
-                    // $$ = $1 == $3;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 == *$3;
+                    else if ($1->dType == $3->dType)
+                        *$$ = *$1 == *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp GEQ exp 
                 {
-                    // TODO
-                    // $$ = $1 >= $3;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 >= *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp NEQ exp 
                 {
-                    // TODO
-                    // $$ = $1 != $3;
+                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                        *$$ = *$1 != *$3;
+                    else if ($1->dType == $3->dType)
+                        *$$ = *$1 != *$3;
+                    else 
+                        yyerror("type error\n");
                 } |
                 exp AND exp 
                 {
-                    // TODO
-                    // $$ = $1 && $3;
+                    if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
+                        *$$ = *$1 && *$3;
+                    else
+                        yyerror("type error\n");
                 } |
                 exp OR exp
                 {
-                    // TODO
-                    // $$ = $1 || $3;
+                    if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
+                        *$$ = *$1 || *$3;
+                    else
+                        yyerror("type error\n");
                 };
 
 conditional:    IF '(' bool_exp ')' block |

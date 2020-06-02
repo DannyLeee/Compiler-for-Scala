@@ -108,6 +108,114 @@ entry entry::operator%(const entry& e) {
 	return entry(INT_, this->val.iVal % e.val.iVal, false);
 }
 
+entry entry::operator<(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.rVal < e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(BOOLEAN_, this->val.rVal < e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.iVal < e.val.rVal, false);
+	else
+		return entry(BOOLEAN_, this->val.iVal < e.val.iVal, false);
+}
+
+entry entry::operator<=(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.rVal <= e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(BOOLEAN_, this->val.rVal <= e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.iVal <= e.val.rVal, false);
+	else
+		return entry(BOOLEAN_, this->val.iVal <= e.val.iVal, false);
+}
+
+entry entry::operator>=(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.rVal > e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(BOOLEAN_, this->val.rVal > e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.iVal > e.val.rVal, false);
+	else
+		return entry(BOOLEAN_, this->val.iVal > e.val.iVal, false);
+}
+
+entry entry::operator>(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.rVal > e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(BOOLEAN_, this->val.rVal > e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.iVal > e.val.rVal, false);
+	else
+		return entry(BOOLEAN_, this->val.iVal > e.val.iVal, false);
+}
+
+entry entry::operator==(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.rVal == e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(BOOLEAN_, this->val.rVal == e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.iVal == e.val.rVal, false);
+	else
+		return entry(BOOLEAN_, this->val.iVal == e.val.iVal, false);
+	
+	switch (this->dType)
+	{
+	case CHAR_:
+		return entry(BOOLEAN_, this->val.cVal == e.val.cVal, false);
+		break;
+	case STR_:
+		return entry(BOOLEAN_, *(this->val.sVal) == *(e.val.sVal), false);
+		break;
+	case BOOLEAN_:
+		return entry(BOOLEAN_, this->val.bVal == e.val.bVal, false);
+		break;
+	default:
+		break;
+	}
+}
+
+entry entry::operator!=(const entry& e) {
+	if (this->dType == REAL_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.rVal != e.val.rVal, false);
+	else if (this->dType == REAL_ && e.dType == INT_)
+		return entry(BOOLEAN_, this->val.rVal != e.val.iVal, false);
+	else if (this->dType == INT_ && e.dType == REAL_)
+		return entry(BOOLEAN_, this->val.iVal != e.val.rVal, false);
+	else
+		return entry(BOOLEAN_, this->val.iVal != e.val.iVal, false);
+	
+	switch (this->dType)
+	{
+	case CHAR_:
+		return entry(BOOLEAN_, this->val.cVal != e.val.cVal, false);
+		break;
+	case STR_:
+		return entry(BOOLEAN_, *(this->val.sVal) != *(e.val.sVal), false);
+		break;
+	case BOOLEAN_:
+		return entry(BOOLEAN_, this->val.bVal != e.val.bVal, false);
+		break;
+	default:
+		break;
+	}
+}
+
+entry entry::operator&&(const entry& e) {
+	return entry(BOOLEAN_, this->val.bVal && e.val.bVal, false);
+}
+
+entry entry::operator||(const entry& e) {
+	return entry(BOOLEAN_, this->val.bVal || e.val.bVal, false);
+}
+
+entry entry::operator!() {
+	return entry(BOOLEAN_, !(this->val.bVal), false);
+}
+
 entry entry::operator-() {
 	if (this->dType == INT_)
 		return entry(INT_, -this->val.iVal, false);

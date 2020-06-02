@@ -37,6 +37,15 @@ struct entry {
 	entry operator* (const entry& e);
 	entry operator/ (const entry& e);
 	entry operator% (const entry& e);
+	entry operator< (const entry& e);
+	entry operator<= (const entry& e);
+	entry operator>= (const entry& e);
+	entry operator> (const entry& e);
+	entry operator== (const entry& e);
+	entry operator!= (const entry& e);
+	entry operator&& (const entry& e);
+	entry operator|| (const entry& e);
+	entry operator!();
 	entry operator- ();
 };
 
