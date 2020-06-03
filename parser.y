@@ -96,73 +96,95 @@ type_:          ':' CHAR
 
 const_declar:   VAL ID type_ '=' constant_exp
                 {
-                    // insert symbol table
-                    if ($3 == NTYPE)
+                    // check the symbol table first
+                    if (sTableList[current_t].lookup(*$2) == -1)
                     {
-                        sTableList[current_t].insert(*$2, *$5);
-                    }
-                    else
-                    {
-                        if ($3 == $5->dType)
+                        // insert symbol table
+                        if ($3 == NTYPE)
                         {
-                            Trace("Reducing to constant declar\n");
                             sTableList[current_t].insert(*$2, *$5);
                         }
                         else
                         {
-                            yyerror("type error\n");
+                            if ($3 == $5->dType)
+                            {
+                                Trace("Reducing to constant declar\n");
+                                sTableList[current_t].insert(*$2, *$5);
+                            }
+                            else
+                                yyerror("type error\n");
                         }
                     }
+                    else
+                        yyerror("conflicting declaration\n");
                 };
 
 var_declar:     VAR ID type_
                 {
-                    // insert symbol table
-                    if ($3 == NTYPE)
+                    // check the symbol table first
+                    if (sTableList[current_t].lookup(*$2) == -1)
                     {
-                        entry temp;
-                        sTableList[current_t].insert(*$2, temp);
+                        // insert symbol table
+                        if ($3 == NTYPE)
+                        {
+                            entry temp;
+                            sTableList[current_t].insert(*$2, temp);
+                        }
+                        else
+                        {
+                            dataType t = static_cast <dataType> ($3);   // int to enum
+                            entry temp(t);
+                            sTableList[current_t].insert(*$2, temp);
+                        }
                     }
                     else
-                    {
-                        dataType t = static_cast <dataType> ($3);   // int to enum
-                        entry temp(t);
-                        sTableList[current_t].insert(*$2, temp);
-                    }
+                        yyerror("conflicting declaration\n");
                 } |
                 VAR ID type_ '=' constant_exp
                 {
-                    // insert symbol table
-                    if ($3 == NTYPE)
+                    // check the symbol table first
+                    if (sTableList[current_t].lookup(*$2) == -1)
                     {
-                        sTableList[current_t].insert(*$2, *$5);
-                    }
-                    else
-                    {
-                        if ($3 == $5->dType)
+                        // insert symbol table
+                        if ($3 == NTYPE)
                         {
-                            Trace("Reducing to constant declar\n");
                             sTableList[current_t].insert(*$2, *$5);
                         }
                         else
                         {
-                            yyerror("type error\n");
+                            if ($3 == $5->dType)
+                            {
+                                Trace("Reducing to constant declar\n");
+                                sTableList[current_t].insert(*$2, *$5);
+                            }
+                            else
+                            {
+                                yyerror("type error\n");
+                            }
                         }
                     }
+                    else
+                        yyerror("conflicting declaration\n");
                 };
 
 array_declar:   VAR ID type_ '[' exp ']'
                 {
-                    // insert symbol table
-                    if ($3 == NTYPE)
-                        yyerror("array don't has type\n");
-                    else if ($5->dType != INT_)
-                        yyerror("not integer inside []\n");
-                    else
+                    // check the symbol table first
+                    if (sTableList[current_t].lookup(*$2) == -1)
                     {
-                        dataType t = static_cast <dataType> ($3);   // int to enum
-                        sTableList[current_t].insert(*$2, t, $5->val.iVal);
+                        // insert symbol table
+                        if ($3 == NTYPE)
+                            yyerror("array don't has type\n");
+                        else if ($5->dType != INT_)
+                            yyerror("not integer inside []\n");
+                        else
+                        {
+                            dataType t = static_cast <dataType> ($3);   // int to enum
+                            sTableList[current_t].insert(*$2, t, $5->val.iVal);
+                        }
                     }
+                    else
+                        yyerror("conflicting declaration\n");
                 };
 
     /* Program Units */

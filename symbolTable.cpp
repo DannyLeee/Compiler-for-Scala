@@ -226,26 +226,20 @@ entry entry::operator-() {
 int table::lookup(const string& name) {
 	if (this->entry_.find(name) != this->entry_.end() || this->array_.find(name) != this->array_.end())
 		return 1;
-	return -1;
+	return -1;	// notfound
 }
 
-int table::insert(const string & name, const entry& e) {
-	if (this->lookup(name) == -1) {
-		this->entry_[name] = e;
-		return 1;
-	}
-	return -1;
+void table::insert(const string & name, const entry& e) {
+	this->entry_[name] = e;
+	return ;
 }
 
-int table::insert(const string& name, const dataType& t, const int& size) {
-	if (this->lookup(name) == -1) {
-		vector<entry> v;
-		for (int i = 0; i < size; i++)
-			v.push_back(entry(t));
-		this->array_[name] = v;
-		return 1;
-	}
-	return -1;
+void table::insert(const string& name, const dataType& t, const int& size) {
+	vector<entry> v;
+	for (int i = 0; i < size; i++)
+		v.push_back(entry(t));
+	this->array_[name] = v;
+	return ;
 }
 
 void table::update(const string& name, const entry& e, const int& position, const bool& isArr) {

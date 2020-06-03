@@ -53,8 +53,8 @@ struct table {
 	map <string, entry> entry_;
 	map <string, vector<entry>> array_;
 	int lookup(const string& name);
-	int insert(const string& name, const entry& e);
-	int insert(const string& name, const dataType& t, const int& size);
+	void insert(const string& name, const entry& e);
+	void insert(const string& name, const dataType& t, const int& size);
 	void update(const string& name, const entry& e, const int& position , const bool& isArr);
 	void dump();
 };
