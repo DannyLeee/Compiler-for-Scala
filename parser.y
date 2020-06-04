@@ -4,9 +4,9 @@
 #include "lex.yy.cpp"
 #define Trace(t)        printf(t)
 
-void yyerror(char *msg)
+void yyerror(string msg)
 {
-    fprintf(stderr, "%s\n", msg);
+    cerr << msg << endl;
 }
 
 int listLookup(const string& name, const vector <entry>& l)
@@ -118,7 +118,7 @@ type_:          ':' CHAR
 const_declar:   VAL ID type_ '=' constant_exp
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2) == -1)
+                    if (sTableList[current_t].lookup(*$2, false) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -143,7 +143,7 @@ const_declar:   VAL ID type_ '=' constant_exp
 var_declar:     VAR ID type_
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2) == -1)
+                    if (sTableList[current_t].lookup(*$2, false) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -163,7 +163,7 @@ var_declar:     VAR ID type_
                 VAR ID type_ '=' constant_exp
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2) == -1)
+                    if (sTableList[current_t].lookup(*$2, false) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -190,7 +190,7 @@ var_declar:     VAR ID type_
 array_declar:   VAR ID type_ '[' exp ']'
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2) == -1)
+                    if (sTableList[current_t].lookup(*$2, false) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -252,7 +252,7 @@ formal_arguments:   ID type_
                                 $$ = $1;
                             }
                             else
-                                yyerror("redefinition\n");
+                                yyerror("redefinition argument\n");
                         }
                         else
                             yyerror("formal argument needs type\n");
@@ -264,19 +264,26 @@ formal_arguments:   ID type_
                     };
 
 _0_or_more_stmts: stmts _0_or_more_stmts | ;
-method_declar:  DEF ID '(' formal_arguments ')' type_ block
+method_declar:  DEF ID '(' formal_arguments ')' type_ 
                 {
-                    // TODO ??
-                };
+                    // check the table no function name ID
+                    if (sTableList[current_t].lookup(*$2, true) == -1)
+                    {
+                        // bind the argument list to ID
+                        sTableList[current_t].insert(*$2, $6, *$4);
+                    }
+                    else
+                        yyerror("redefinition method\n");
+                } block;
 
     /* Statements */
-stmts:          exp | simple_stmts | block |
-                conditional | loop | procedure_invocate ;
+stmts:          exp | simple_stmts | block | conditional | loop;
 
 var_name:       ID
                 {
+                    // TODO: check all previous table
                     // lookup the symbol table and return variable's name
-                    if (sTableList[current_t].lookup(*$1) != -1)
+                    if (sTableList[current_t].lookup(*$1, false))
                     {
                         entry temp(NAME_, $1, true);
                         *$$ = temp; // return an entry dType: NAME_, value: ID 
@@ -332,11 +339,10 @@ exp:            num | constant_exp | bool_exp | var_name |
                     else 
                         yyerror("type error\n");
                 } |
-                func_invocate
+                func_or_procedure_invocate
                 {
                     // TODO
                 } |
-                
                 '(' exp ')'
                 {
                     $$ = $2;
@@ -377,11 +383,6 @@ simple_stmts:   RETURN |
     // function invocation
 comma_separate_exp: constant_exp |
                     constant_exp ',' comma_separate_exp | ;
-
-func_invocate:  ID '(' comma_separate_exp ')'
-                {
-                    // TODO: check parameters' data type
-                };
 
     // block
 block:          '{'
@@ -489,12 +490,17 @@ loop:           WHILE '(' bool_exp ')' block |
                 FOR '(' ID '<''-' num TO num ')' block |
                 FOR '(' ID '<''-' num TO num ')' simple_stmts;
 
-    /* procedure invocation */
-procedure_invocate: ID |
-                    ID '(' comma_separate_exp ')'
-                    {
-                        // TODO: check parameters' data type
-                    };
+    /* function or procedure invocation */
+func_or_procedure_invocate: ID
+                            {
+                                // TODO: procedure only
+                            } |
+                            ID '(' comma_separate_exp ')'
+                            {
+                                // TODO: check parameters' data type
+                                // function return the function return type
+                                // procedure return NTYPE
+                            };
 
 %%
 
