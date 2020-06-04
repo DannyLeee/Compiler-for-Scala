@@ -1,7 +1,7 @@
 %{
 /* C Declarations and Includes */
 
-#include "y.h"
+#include "y.tab.hpp"
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
 #define token(t) {LIST; printf("<'%s'>\n",t); return *t;}

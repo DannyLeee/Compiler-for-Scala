@@ -1,6 +1,5 @@
-lex.yy.c
+lex.yy.*
 scanner
 *.scala
 parser
-y.h
-y.tab.cpp
+y.*

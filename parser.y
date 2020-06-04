@@ -1,12 +1,22 @@
 %{
 #include <stdlib.h>
 #include "symbolTable.h"
-#include "lex.yy.c"
+#include "lex.yy.cpp"
 #define Trace(t)        printf(t)
 
 void yyerror(char *msg)
 {
     fprintf(stderr, "%s\n", msg);
+}
+
+int listLookup(const string& name, const vector <entry>& l)
+{
+    for (int i = 0; i < l.size(); i++)
+    {
+        if (name == *l[i].val.sVal)
+            return 1;
+    }
+    return -1;
 }
 
 vector <table> sTableList;
@@ -19,6 +29,8 @@ int current_t;
     string* strVal;
     double realVal;
     bool boolVal;
+    vector<entry>* list;
+    dataType typeVal;
 }
 
 
@@ -29,10 +41,9 @@ int current_t;
 /* other tokens */
 %token OR AND LES LEQ EQU GRT GEQ NEQ
 
-%token NTYPE
-
 %type <entryPt> constant_exp num exp bool_exp var_name
-%type <intVal> type_
+%type <typeVal> type_
+%type <list> formal_arguments
 
 %token <strVal> STRING_ ID
 %token <intVal> INTEGER
@@ -64,7 +75,11 @@ constant_exp:   STRING_
                 {
                     $$ = $1;
                 } |
-                TRUE | FALSE
+                TRUE
+                {
+                    entry* temp = new entry(BOOLEAN_, $1, true);
+                    $$ = temp;
+                } | FALSE
                 {
                     entry* temp = new entry(BOOLEAN_, $1, true);
                     $$ = temp;
@@ -72,26 +87,32 @@ constant_exp:   STRING_
 
 type_:          ':' CHAR
                 {
-                    $$ = CHAR_;
+                    dataType t = static_cast <dataType> (CHAR_);   // int to enum
+                    $$ = t;
                 } |
                 ':' STRING
                 {
-                    $$ = STRING_;
+                    dataType t = static_cast <dataType> (STR_);   // int to enum
+                    $$ = t;
                 } |
                 ':' INT
                 {
-                    $$ = INT_;
+                    dataType t = static_cast <dataType> (INT_);   // int to enum
+                    $$ = t;
                 } |
                 ':' BOOLEAN 
                 {
-                    $$ = BOOLEAN_;
+                    dataType t = static_cast <dataType> (BOOLEAN_);   // int to enum
+                    $$ = t;
                 }|
                 ':' FLOAT 
                 {
-                    $$ = REAL_;
+                    dataType t = static_cast <dataType> (REAL_);   // int to enum
+                    $$ = t;
                 } |
                 {
-                    $$ = NTYPE;
+                    dataType t = static_cast <dataType> (NTYPE);   // int to enum
+                    $$ = t;
                 };
 
 const_declar:   VAL ID type_ '=' constant_exp
@@ -132,8 +153,7 @@ var_declar:     VAR ID type_
                         }
                         else
                         {
-                            dataType t = static_cast <dataType> ($3);   // int to enum
-                            entry temp(t);
+                            entry temp($3);
                             sTableList[current_t].insert(*$2, temp);
                         }
                     }
@@ -179,8 +199,7 @@ array_declar:   VAR ID type_ '[' exp ']'
                             yyerror("not integer inside []\n");
                         else
                         {
-                            dataType t = static_cast <dataType> ($3);   // int to enum
-                            sTableList[current_t].insert(*$2, t, $5->val.iVal);
+                            sTableList[current_t].insert(*$2, $3, $5->val.iVal);
                         }
                     }
                     else
@@ -202,10 +221,47 @@ obj_declar:     OBJECT ID '{'
                     sTableList.pop_back();
                 };
 
-formal_arguments:   ID type_ formal_arguments
+formal_arguments:   ID type_
                     {
-                        // TODO
-                    } | ;
+                        Trace("Reducing to formal argument\n");
+                        Trace("debug: ");
+                        cout << "name: " << $1 << "type: " << $2 << endl;
+                        // check type_ not NTYPE
+                        if ($2 != NTYPE)
+                        {
+                            // new a vector<entry> to store whole formal argument
+                            vector<entry>* arguList = new vector<entry>;
+                            entry temp($2, $1);
+                            arguList->push_back(temp);
+                            $$ = arguList;
+                        }
+                        else
+                            yyerror("formal argument needs type\n");
+                    } |
+                    formal_arguments ',' ID type_
+                    {
+                        // check type_ not NTYPE
+                        if ($4 != NTYPE)
+                        {
+                            // check the list hasn't have argument name ID
+                            if (listLookup(*$3, *$1) == -1)
+                            {
+                                // push back the new argument to the vector
+                                entry temp($4, $3);
+                                $1->push_back(temp);
+                                $$ = $1;
+                            }
+                            else
+                                yyerror("redefinition\n");
+                        }
+                        else
+                            yyerror("formal argument needs type\n");
+                    } |
+                    {
+                        // return empty list
+                        vector<entry>* list = new vector<entry>(0);
+                        $$ = list;
+                    };
 
 _0_or_more_stmts: stmts _0_or_more_stmts | ;
 method_declar:  DEF ID '(' formal_arguments ')' type_ block
@@ -229,10 +285,7 @@ var_name:       ID
                         yyerror("no variable name\n");
                 };
 
-exp:            num 
-                {
-                    $$ = $1;
-                } |
+exp:            num | constant_exp | bool_exp | var_name |
                 exp '+' exp
                 {
                     if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
@@ -279,10 +332,11 @@ exp:            num
                     else 
                         yyerror("type error\n");
                 } |
-                constant_exp | bool_exp | func_invocate | var_name
+                func_invocate
                 {
-                    $$ = $1;
+                    // TODO
                 } |
+                
                 '(' exp ')'
                 {
                     $$ = $2;
@@ -441,9 +495,6 @@ procedure_invocate: ID |
                     {
                         // TODO: check parameters' data type
                     };
-
-
-
 
 %%
 

@@ -48,6 +48,10 @@ entry::entry(const dataType& t) : dType(t), isConst(false) {
 	}
 }
 
+entry::entry(const dataType& t, string* name) : dType(t), isConst(false) {
+	val.sVal = name;
+}
+
 entry& entry::operator=(const entry& e)
 {
 	dType = e.dType;
