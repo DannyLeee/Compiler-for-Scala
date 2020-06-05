@@ -22,10 +22,14 @@ int listLookup(const string& name, const vector <entry>& l)
 int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const bool& isFunc)
 {
     int p = cur;
-    // TODO: check all previous table
-    // lookup the symbol table and return variable's name
-    if (tableList[p].lookup(name, isFunc))
-        return p;
+    // check all previous table
+    while (p >= 0)
+    {
+        // lookup the symbol table and return variable's name
+        if (tableList[p].lookup(name, isFunc))
+            return p;
+        p -= 1;
+    }
     return -1;
 }
 
@@ -56,8 +60,6 @@ int current_t;
     vector<entry>* list;
     dataType typeVal;
 }
-
-
 
 /* keyword tokens */
 %token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE
@@ -304,14 +306,15 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
     /* Statements */
 stmts:          exp | simple_stmts | block | conditional | loop;
 
-exp:            num | constant_exp | bool_exp |
+exp:            num | constant_exp | bool_exp | method_invocate |
                 ID
                 {
                     int p;
                     if ((p = isVarOrMethodName(*$1, sTableList, current_t, false)) != -1 || (p = isVarOrMethodName(*$1, sTableList, current_t, true)) != -1)
-                        $$ = new entry();
-                        // do nothing (need expression before else)
+                    {
+                        // do nothing
                         // P3 TODO
+                    }
                     else
                         yyerror("varirable or method name not found\n");
                 } |
@@ -360,10 +363,6 @@ exp:            num | constant_exp | bool_exp |
                         *$$ = -(*$2);
                     else 
                         yyerror("type error\n");
-                } |
-                method_invocate
-                {
-                    // TODO
                 } |
                 '(' exp ')'
                 {
@@ -424,8 +423,27 @@ simple_stmts:   RETURN |
                 };
 
     // function invocation
-comma_separate_exp: constant_exp |
-                    constant_exp ',' comma_separate_exp | ; // TODO
+comma_separate_exp: constant_exp
+                    {
+                        Trace("Reducing to comma separeate exp\n");
+                        Trace("debug: ");
+                        cout << "type: " << $1->dType << endl;
+                        // new a vector<entry> to store whole formal parameter
+                        vector<entry>* parameterList = new vector<entry>;
+                        parameterList->push_back(*$1);
+                        $$ = parameterList;
+                    } |
+                    comma_separate_exp ',' constant_exp
+                    {
+                        // push back the new parameter to the vector
+                        $1->push_back(*$3);
+                        $$ = $1;
+                    } |
+                    {
+                        // return empty list
+                        vector<entry>* list = new vector<entry>(0);
+                        $$ = list;
+                    };
 
     // block
 block:          '{'
@@ -546,10 +564,13 @@ method_invocate:    ID '(' comma_separate_exp ')'
                             case 1:
                                 // procedure will return NTYPE
                                 if (sTableList[p].func_[*$1][0].dType == NTYPE)
-                                    $$ = 0;
+                                {
                                     // P3 TODO
+                                }
                                 else    // function return the function return type
+                                {
                                     // P3 TODO
+                                }
                                 break;
                             case -1:
                                 yyerror("parameter type error\n");
