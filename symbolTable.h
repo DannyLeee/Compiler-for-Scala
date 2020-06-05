@@ -54,7 +54,7 @@ struct table {
 	map <string, entry> entry_;			// stroe normal variable
 	map <string, vector<entry>> array_;	// stroe array variable
 	map <string, vector<entry>> func_;	// stroe function info
-	int lookup(const string& name, const bool& isFunc);
+	int lookup(const string& name, const bool& isFunc) const;
 	void insert(const string& name, const entry& e);	// for normal variable declaration
 	void insert(const string& name, const dataType& t, const int& size);	// for array declaration
 	void insert(const string& name, const dataType& t, const vector<entry>& list);	// for function declaration

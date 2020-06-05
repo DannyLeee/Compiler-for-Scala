@@ -227,7 +227,7 @@ entry entry::operator-() {
 		return entry(REAL_, -this->val.rVal, false);
 }
 
-int table::lookup(const string& name, const bool& isFunc) {
+int table::lookup(const string& name, const bool& isFunc) const {
 	if (isFunc)
 	{
 		// find duplicate function name

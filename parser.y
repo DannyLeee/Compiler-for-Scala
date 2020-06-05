@@ -19,6 +19,30 @@ int listLookup(const string& name, const vector <entry>& l)
     return -1;
 }
 
+int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const bool& isFunc)
+{
+    int p = cur;
+    // TODO: check all previous table
+    // lookup the symbol table and return variable's name
+    if (tableList[p].lookup(name, isFunc))
+        return p;
+    return -1;
+}
+
+int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter)
+{
+    if (argument.size() > parameter.size() + 1)
+        return -2;
+    else if (argument.size() < parameter.size() + 1)
+        return -3;
+    for (int i = 0; i < parameter.size(); i++)
+    {
+        if (argument[i + 1].dType != parameter[i].dType)
+            return -1;
+    }
+    return 1;
+}
+
 vector <table> sTableList;
 int current_t;
 %}
@@ -41,9 +65,10 @@ int current_t;
 /* other tokens */
 %token OR AND LES LEQ EQU GRT GEQ NEQ
 
-%type <entryPt> constant_exp num exp bool_exp var_name
+%type <entryPt> constant_exp num exp bool_exp
 %type <typeVal> type_
-%type <list> formal_arguments
+%type <list>    formal_arguments comma_separate_exp
+%type <intVal>  method_invocate
 
 %token <strVal> STRING_ ID
 %token <intVal> INTEGER
@@ -68,7 +93,7 @@ program:    obj_declar program |
     // any type of the variable expression
 constant_exp:   STRING_
                 {
-                    entry* temp = new entry(STR_, new string(*$1), true);
+                    entry* temp = new entry(STR_, $1, true);
                     $$ = temp;
                 } |
                 num
@@ -279,20 +304,17 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
     /* Statements */
 stmts:          exp | simple_stmts | block | conditional | loop;
 
-var_name:       ID
+exp:            num | constant_exp | bool_exp |
+                ID
                 {
-                    // TODO: check all previous table
-                    // lookup the symbol table and return variable's name
-                    if (sTableList[current_t].lookup(*$1, false))
-                    {
-                        entry temp(NAME_, $1, true);
-                        *$$ = temp; // return an entry dType: NAME_, value: ID 
-                    }
+                    int p;
+                    if ((p = isVarOrMethodName(*$1, sTableList, current_t, false)) != -1 || (p = isVarOrMethodName(*$1, sTableList, current_t, true)) != -1)
+                        $$ = new entry();
+                        // do nothing (need expression before else)
+                        // P3 TODO
                     else
-                        yyerror("no variable name\n");
-                };
-
-exp:            num | constant_exp | bool_exp | var_name |
+                        yyerror("varirable or method name not found\n");
+                } |
                 exp '+' exp
                 {
                     if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
@@ -339,7 +361,7 @@ exp:            num | constant_exp | bool_exp | var_name |
                     else 
                         yyerror("type error\n");
                 } |
-                func_or_procedure_invocate
+                method_invocate
                 {
                     // TODO
                 } |
@@ -358,31 +380,52 @@ exp:            num | constant_exp | bool_exp | var_name |
 
     // simple
 simple_stmts:   RETURN |
-                READ var_name |
+                READ ID
+                {
+                    int p = isVarOrMethodName(*$2, sTableList, current_t, false);
+                    if (p != -1)
+                    {
+                        // P3 TODO? 
+                    }
+                    else
+                        yyerror("varirable name not found\n");
+                } |
                 PRINT exp |
                 RETURN exp |
                 PRINTLN exp
                 {
                     Trace("Reducing to simple statement\n");
                 } |
-                var_name '=' exp 
+                ID '=' exp 
                 {
-                    // assign the value to ID
-                    sTableList[current_t].update(*$1->val.sVal, *$3, 0, false);
-                } |
-                var_name '[' exp ']' '=' exp
-                {
-                    // check [exp] is int or error
-                    if ($3->dType == INT_)
-                        // assign the value to ID[i]
-                        sTableList[current_t].update(*$1->val.sVal, *$6, $3->val.iVal, true);
+                    int p = isVarOrMethodName(*$1, sTableList, current_t, false);
+                    if (p != -1)
+                    {
+                        // assign the value to ID
+                        sTableList[current_t].update(*$1, *$3, 0, false);
+                    }
                     else
-                        yyerror("not integer in []\n");
+                        yyerror("varirable name not found\n");
+                } |
+                ID '[' exp ']' '=' exp
+                {
+                    int p = isVarOrMethodName(*$1, sTableList, current_t, false);
+                    if (p != -1)
+                    { 
+                        // check [exp] is int or error
+                        if ($3->dType == INT_)
+                            // assign the value to ID[i]
+                            sTableList[current_t].update(*$1, *$6, $3->val.iVal, true);
+                        else
+                            yyerror("not integer in []\n");
+                    }
+                    else
+                        yyerror("varirable name not found\n");
                 };
 
     // function invocation
 comma_separate_exp: constant_exp |
-                    constant_exp ',' comma_separate_exp | ;
+                    constant_exp ',' comma_separate_exp | ; // TODO
 
     // block
 block:          '{'
@@ -491,16 +534,40 @@ loop:           WHILE '(' bool_exp ')' block |
                 FOR '(' ID '<''-' num TO num ')' simple_stmts;
 
     /* function or procedure invocation */
-func_or_procedure_invocate: ID
+method_invocate:    ID '(' comma_separate_exp ')'
+                    {
+                        int p = isVarOrMethodName(*$1, sTableList, current_t, false);
+                        if (p != -1)
+                        {
+                            // check parameters' data type
+                            int Flag = parameterCheck(sTableList[p].func_[*$1], *$3);
+                            switch (Flag)
                             {
-                                // TODO: procedure only
-                            } |
-                            ID '(' comma_separate_exp ')'
-                            {
-                                // TODO: check parameters' data type
-                                // function return the function return type
-                                // procedure return NTYPE
-                            };
+                            case 1:
+                                // procedure will return NTYPE
+                                if (sTableList[p].func_[*$1][0].dType == NTYPE)
+                                    $$ = 0;
+                                    // P3 TODO
+                                else    // function return the function return type
+                                    // P3 TODO
+                                break;
+                            case -1:
+                                yyerror("parameter type error\n");
+                                break;
+                            case -2:
+                                yyerror(" too few arguments\n");
+                                break;
+                            case -3:
+                                yyerror(" too many arguments\n");
+                                break;
+                            }
+                        }
+                        else if (isVarOrMethodName(*$1, sTableList, current_t, true))
+                            yyerror("not a function");
+                        else
+                            yyerror("method name not found\n");
+                        
+                    };
 
 %%
 
