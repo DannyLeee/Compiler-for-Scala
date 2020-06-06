@@ -67,10 +67,9 @@ int current_t;
 /* other tokens */
 %token OR AND LES LEQ EQU GRT GEQ NEQ
 
-%type <entryPt> constant_exp num exp bool_exp
+%type <entryPt> constant_exp num exp bool_exp method_invocate return_
 %type <typeVal> type_
 %type <list>    formal_arguments comma_separate_exp
-%type <intVal>  method_invocate
 
 %token <strVal> STRING_ ID
 %token <intVal> INTEGER
@@ -237,7 +236,10 @@ array_declar:   VAR ID type_ '[' exp ']'
 _0_or_more_CONST_VAR:  const_declar | var_declar | array_declar | ;
 _1_or_more_method:   method_declar | method_declar _1_or_more_method;
 
-obj_declar:     OBJECT ID '{'
+obj_declar:     OBJECT ID
+                {
+                    // TODO: push ID into table
+                } '{'
                 {
                     // open a new symbol table
                     table new_t;
@@ -291,7 +293,20 @@ formal_arguments:   ID type_
                     };
 
 _0_or_more_stmts: stmts _0_or_more_stmts | ;
-method_declar:  DEF ID '(' formal_arguments ')' type_ 
+
+return_:        RETURN
+                {
+                    $$ = new entry(NTYPE);
+                } |
+                RETURN exp
+                {
+                    $$ = $2;
+                } |
+                {
+                    $$ = new entry(NTYPE);
+                };
+
+method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
                     // check the table no function name ID
                     if (sTableList[current_t].lookup(*$2, true) == -1)
@@ -301,7 +316,23 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     }
                     else
                         yyerror("redefinition method\n");
-                } block;
+                } '{'
+                {
+                    // new a symbol table
+                    table new_t;
+                    sTableList.push_back(new_t);
+                    current_t += 1;
+                } _0_or_more_CONST_VAR _0_or_more_stmts return_
+                {
+                    if ($12->dType != $6)
+                        sTableList[current_t - 1].func_[*$2][0] = *$12;  // bind the return value
+                    else
+                        yyerror("wrong return type\n");
+                } '}'
+                {
+                    // delete the table in block
+                    sTableList.pop_back();
+                };
 
     /* Statements */
 stmts:          exp | simple_stmts | block | conditional | loop;
@@ -367,33 +398,19 @@ exp:            num | constant_exp | bool_exp | method_invocate |
                 '(' exp ')'
                 {
                     $$ = $2;
-                } |
-                '[' exp ']'
-                {
-                    // check [exp] is int or error
-                    if ($2->dType == INT_)
-                        $$ = $2;
-                    else
-                        yyerror("type error\n");
                 };
 
     // simple
-simple_stmts:   RETURN |
+simple_stmts:   PRINT exp | PRINTLN exp |
                 READ ID
                 {
                     int p = isVarOrMethodName(*$2, sTableList, current_t, false);
                     if (p != -1)
                     {
-                        // P3 TODO? 
+                        // P3TODO:
                     }
                     else
                         yyerror("varirable name not found\n");
-                } |
-                PRINT exp |
-                RETURN exp |
-                PRINTLN exp
-                {
-                    Trace("Reducing to simple statement\n");
                 } |
                 ID '=' exp 
                 {
@@ -562,14 +579,16 @@ method_invocate:    ID '(' comma_separate_exp ')'
                             switch (Flag)
                             {
                             case 1:
-                                // procedure will return NTYPE
                                 if (sTableList[p].func_[*$1][0].dType == NTYPE)
                                 {
-                                    // P3 TODO
+                                    $$ = new entry(NTYPE);  // procedure will return NTYPE
+                                    // P3:TODO
                                 }
-                                else    // function return the function return type
+                                else
                                 {
-                                    // P3 TODO
+                                    entry temp = sTableList[p].func_[*$1][0];
+                                    $$ = &temp;  // function will return the return value 
+                                    // P3TODO:
                                 }
                                 break;
                             case -1:
