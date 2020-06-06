@@ -6,9 +6,9 @@
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
 #define token(t) {LIST; printf("<'%s'>\n",t); return *t;}
 #define tokenKeyword(t) {LIST; printf("<%s>\n",t);}
-#define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i));}
-#define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f));}
-#define tokenString(t,s) {LIST; printf("<%s%s>\n",t,s);}
+#define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i)); yylval.intVal = atoi(i);}
+#define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f)); yylval.realVal = atof(f);}
+#define tokenString(t,s) {LIST; printf("<%s%s>\n",t,s); yylval.strVal = new string(s);}
 
 #define MAX_LINE_LENG 256
 
@@ -215,8 +215,6 @@ while   {
     /* identifiers */
 {id}        {
     tokenString("id: ", yytext);
-    string temp = yytext;
-    // sTable.insert(temp, 0);
     return ID;
 }
 

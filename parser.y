@@ -339,7 +339,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
     /* Statements */
 stmts:          exp | simple_stmts | block | conditional | loop;
 
-exp:            num | constant_exp | bool_exp | method_invocate |
+exp:            constant_exp | bool_exp | method_invocate |
                 ID
                 {
                     int p;
@@ -628,7 +628,7 @@ int main(int argc, char *argv[])
 
     table mainTable;
     sTableList.push_back(mainTable);
-    current_t = 1;
+    current_t = 0;
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
