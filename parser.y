@@ -232,6 +232,7 @@ _1_or_more_method:   method_declar | method_declar _1_or_more_method;
 
 obj_declar:     OBJECT ID
                 {
+                    Trace("debug");
                     // push ID into table
                     if (sTableList[current_t].lookup(*$2, objType::OBJ) == -1)
                     {
