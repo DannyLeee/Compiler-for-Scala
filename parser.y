@@ -19,14 +19,14 @@ int listLookup(const string& name, const vector <entry>& l)
     return -1;
 }
 
-int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const bool& isFunc)
+int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const objType& objT)
 {
     int p = cur;
     // check all previous table
     while (p >= 0)
     {
         // lookup the symbol table and return variable's name
-        if (tableList[p].lookup(name, isFunc))
+        if (tableList[p].lookup(name, objT))
             return p;
         p -= 1;
     }
@@ -113,38 +113,32 @@ constant_exp:   STRING_
 
 type_:          ':' CHAR
                 {
-                    dataType t = static_cast <dataType> (CHAR_);   // int to enum
-                    $$ = t;
+                    $$ = dataType::CHAR_;
                 } |
                 ':' STRING
                 {
-                    dataType t = static_cast <dataType> (STR_);   // int to enum
-                    $$ = t;
+                    $$ = dataType::STR_;
                 } |
                 ':' INT
                 {
-                    dataType t = static_cast <dataType> (INT_);   // int to enum
-                    $$ = t;
+                    $$ = dataType::INT_;
                 } |
                 ':' BOOLEAN 
                 {
-                    dataType t = static_cast <dataType> (BOOLEAN_);   // int to enum
-                    $$ = t;
+                    $$ = dataType::BOOLEAN_;
                 }|
                 ':' FLOAT 
                 {
-                    dataType t = static_cast <dataType> (REAL_);   // int to enum
-                    $$ = t;
+                    $$ = dataType::REAL_;
                 } |
                 {
-                    dataType t = static_cast <dataType> (NTYPE);   // int to enum
-                    $$ = t;
+                    $$ = dataType::NTYPE;
                 };
 
 const_declar:   VAL ID type_ '=' constant_exp
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2, false) == -1)
+                    if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -169,7 +163,7 @@ const_declar:   VAL ID type_ '=' constant_exp
 var_declar:     VAR ID type_
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2, false) == -1)
+                    if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -189,7 +183,7 @@ var_declar:     VAR ID type_
                 VAR ID type_ '=' constant_exp
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2, false) == -1)
+                    if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -216,7 +210,7 @@ var_declar:     VAR ID type_
 array_declar:   VAR ID type_ '[' exp ']'
                 {
                     // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2, false) == -1)
+                    if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
@@ -238,7 +232,14 @@ _1_or_more_method:   method_declar | method_declar _1_or_more_method;
 
 obj_declar:     OBJECT ID
                 {
-                    // TODO: push ID into table
+                    // push ID into table
+                    if (sTableList[current_t].lookup(*$2, objType::OBJ) == -1)
+                    {
+                        entry temp(OBJ_);
+                        sTableList[current_t].insert(*$2, temp);
+                    }
+                    else
+                        yyerror("redefinition object\n");
                 } '{'
                 {
                     // open a new symbol table
@@ -309,9 +310,10 @@ return_:        RETURN
 method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
                     // check the table no function name ID
-                    if (sTableList[current_t].lookup(*$2, true) == -1)
+                    if (sTableList[current_t].lookup(*$2, objType::FUNC) == -1)
                     {
-                        // bind the argument list to ID
+                        // push ID into table
+                        // and bind the argument list to ID
                         sTableList[current_t].insert(*$2, $6, *$4);
                     }
                     else
@@ -341,10 +343,14 @@ exp:            num | constant_exp | bool_exp | method_invocate |
                 ID
                 {
                     int p;
-                    if ((p = isVarOrMethodName(*$1, sTableList, current_t, false)) != -1 || (p = isVarOrMethodName(*$1, sTableList, current_t, true)) != -1)
+                    if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
                     {
                         // do nothing
-                        // P3 TODO
+                    }
+                    else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
+                    {
+                        // procedure invocate
+                        // P3TODO:
                     }
                     else
                         yyerror("varirable or method name not found\n");
@@ -404,7 +410,7 @@ exp:            num | constant_exp | bool_exp | method_invocate |
 simple_stmts:   PRINT exp | PRINTLN exp |
                 READ ID
                 {
-                    int p = isVarOrMethodName(*$2, sTableList, current_t, false);
+                    int p = isVarOrMethodName(*$2, sTableList, current_t, objType::VAR_);
                     if (p != -1)
                     {
                         // P3TODO:
@@ -414,7 +420,7 @@ simple_stmts:   PRINT exp | PRINTLN exp |
                 } |
                 ID '=' exp 
                 {
-                    int p = isVarOrMethodName(*$1, sTableList, current_t, false);
+                    int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
                     if (p != -1)
                     {
                         // assign the value to ID
@@ -425,7 +431,7 @@ simple_stmts:   PRINT exp | PRINTLN exp |
                 } |
                 ID '[' exp ']' '=' exp
                 {
-                    int p = isVarOrMethodName(*$1, sTableList, current_t, false);
+                    int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
                     if (p != -1)
                     { 
                         // check [exp] is int or error
@@ -571,7 +577,7 @@ loop:           WHILE '(' bool_exp ')' block |
     /* function or procedure invocation */
 method_invocate:    ID '(' comma_separate_exp ')'
                     {
-                        int p = isVarOrMethodName(*$1, sTableList, current_t, false);
+                        int p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC);
                         if (p != -1)
                         {
                             // check parameters' data type
@@ -582,7 +588,7 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                 if (sTableList[p].func_[*$1][0].dType == NTYPE)
                                 {
                                     $$ = new entry(NTYPE);  // procedure will return NTYPE
-                                    // P3:TODO
+                                    // P3TODO:
                                 }
                                 else
                                 {
@@ -602,7 +608,7 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                 break;
                             }
                         }
-                        else if (isVarOrMethodName(*$1, sTableList, current_t, true))
+                        else if (isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_))
                             yyerror("not a function");
                         else
                             yyerror("method name not found\n");

@@ -227,14 +227,20 @@ entry entry::operator-() {
 		return entry(REAL_, -this->val.rVal, false);
 }
 
-int table::lookup(const string& name, const bool& isFunc) const {
-	if (isFunc)
+int table::lookup(const string& name, const objType& objT) const {
+	if (objT == OBJ)
+	{
+		// find duplicate object name
+		if (this->object_.find(name) != this->object_.end())
+			return 1;
+	}
+	else if (objT == FUNC)
 	{
 		// find duplicate function name
 		if (this->func_.find(name) != this->func_.end())
 			return 1;
 	}
-	else
+	else if (objT == VAR_)
 	{
 		// find duplicate variable name
 		if (this->entry_.find(name) != this->entry_.end() || this->array_.find(name) != this->array_.end())
@@ -244,7 +250,10 @@ int table::lookup(const string& name, const bool& isFunc) const {
 }
 
 void table::insert(const string & name, const entry& e) {
-	this->entry_[name] = e;
+	if (e.dType == OBJ_)
+		this->object_[name] = e;
+	else
+		this->entry_[name] = e;
 	return ;
 }
 

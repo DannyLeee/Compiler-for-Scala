@@ -7,7 +7,7 @@
 using namespace std;
 
 /* symbol table entry */
-enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_, NAME_, NTYPE };
+enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_, OBJ_, NTYPE };
 
 struct entry {
 	enum dataType dType;
@@ -50,12 +50,16 @@ struct entry {
 	entry operator-();
 };
 
+/* symbol table */
+enum objType { OBJ, FUNC, VAR_ };
+
 struct table {
-	map <string, entry> entry_;			// stroe normal variable
-	map <string, vector<entry>> array_;	// stroe array variable
-	map <string, vector<entry>> func_;	// stroe function info
-	int lookup(const string& name, const bool& isFunc) const;
-	void insert(const string& name, const entry& e);	// for normal variable declaration
+	map <string, entry> entry_;			// store normal variable
+	map <string, vector<entry>> array_;	// store array variable
+	map <string, vector<entry>> func_;	// store function info
+	map <string, entry> object_;			// store object
+	int lookup(const string& name, const objType& objT) const;
+	void insert(const string& name, const entry& e);	// for normal variable or ibject declaration
 	void insert(const string& name, const dataType& t, const int& size);	// for array declaration
 	void insert(const string& name, const dataType& t, const vector<entry>& list);	// for function declaration
 	void update(const string& name, const entry& e, const int& position , const bool& isArr);
