@@ -51,16 +51,16 @@ real        {plain_real}|{expreal}
     /* "%"             {token(yytext);}*/
 
     /* Relational */
-"<"               {return LES;}
-"<="              {return LEQ;}
-">="              {return GEQ;}
-">"               {return GRT;}
-"=="              {return EQU;}
-"!="              {return NEQ;}
+"<"               {LIST; return LES;}
+"<="              {LIST; return LEQ;}
+">="              {LIST; return GEQ;}
+">"               {LIST; return GRT;}
+"=="              {LIST; return EQU;}
+"!="              {LIST; return NEQ;}
 
     /* Logical */
-&&              {return AND;}
-\|\|            {return OR;}
+&&              {LIST; return AND;}
+\|\|            {LIST; return OR;}
 !               {token(yytext);}
 
     /* assign */

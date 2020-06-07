@@ -1,5 +1,32 @@
 #include "symbolTable.h"
 
+// entry::entry(const entry& e) {
+// 	dType = e.dType;
+// 	isConst = e.isConst;
+// 	switch (dType)
+// 	{
+// 	case INT_:
+// 		val.iVal = e.val.iVal;
+// 		break;
+// 	case REAL_:
+// 		val.rVal = e.val.rVal;
+// 		break;
+// 	case CHAR_:
+// 		val.cVal = e.val.cVal;
+// 		break;
+// 	case STR_:
+// 		val.sVal = e.val.sVal;
+// 		break;
+// 	case BOOLEAN_:
+// 		val.bVal = e.val.bVal;
+// 		break;
+// 	default:
+// 		val.iVal = 0;
+// 		break;
+// 	}
+// 	cout << "debug: calling copy constructor" << endl;
+// }
+
 entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t), isConst(isCon) {
 	switch (t)
 	{
@@ -54,13 +81,17 @@ entry::entry(const dataType& t, string* name) : dType(t), isConst(false) {
 
 entry& entry::operator=(const entry& e)
 {
-	dType = e.dType;
+	cout << "debug: calling assign overload" << endl;
+	cout << e.dType << endl;
+	this->dType = e.dType;
+	cout << "test1.5" << endl;
 	val.iVal = e.val.iVal;
+	
 	val.rVal = e.val.rVal;
 	val.cVal = e.val.cVal;
 	val.sVal = e.val.sVal;
 	val.bVal = e.val.bVal;
-
+	cout << "test1.51" << endl;
 	return *this;
 }
 
@@ -221,13 +252,18 @@ entry entry::operator!() {
 }
 
 entry entry::operator-() {
+	cout << "debug: calling operator minus" << endl;
+	cout << "type: " << this->dType << " " << this->val.iVal << " test1" << endl;
 	if (this->dType == INT_)
-		return entry(INT_, -this->val.iVal, false);
+	{
+		entry temp(INT_, this->val.iVal, false);
+		return temp;
+	}
 	else if (this->dType == REAL_)
-		return entry(REAL_, -this->val.rVal, false);
+		return entry(REAL_);
 }
 
-int table::lookup(const string& name, const objType& objT) const {
+const int table::lookup(const string& name, const objType& objT) const {
 	if (objT == OBJ)
 	{
 		// find duplicate object name
@@ -280,9 +316,59 @@ void table::update(const string& name, const entry& e, const int& position, cons
 	return;
 }
 
-void table::dump() {
-	for (auto it = this->entry_.cbegin(); it != this->entry_.end(); it++) {
+void table::dump() const {
+	cout << "entry" << endl;
+	cout << "name\ttype\tvalue" << endl;
+	cout << "---------------------" << endl;
+	for (auto it = this->entry_.begin(); it != this->entry_.end(); it++) {
+		cout << it->first << "\t" << it->second.dType << "\t";
+		switch (it->second.dType)
+		{
+		case INT_:
+			cout << it->second.val.iVal;
+			break;
+		case REAL_:
+			cout << it->second.val.rVal;
+			break;
+		case CHAR_:
+			cout << it->second.val.cVal;
+			break;
+		case STR_:
+			cout << *it->second.val.sVal;
+			break;
+		case BOOLEAN_:
+			cout << it->second.val.bVal;
+			break;
+		default:
+			break;
+		}
+		cout << endl;
+	}
+	cout << endl;
+	
+	cout << "array" << endl;
+	cout << "name\ttype\tsize" << endl;
+	cout << "--------------------" << endl;
+	for (auto it = this->array_.begin(); it != this->array_.end(); it++) {
+		cout << it->first << "\t" << it->second[0].dType << "\t" << it->second.size() << endl;
+	}
+	cout << endl;
+
+	cout << "func " << this->func_.size() << endl;
+	cout << "name\ttype\targSize" << endl;
+	cout << "-----------------------" << endl;
+	for (auto it = this->func_.begin(); it != this->func_.end(); it++) {
+		// cout << it->first << "\t" << it->second[0].dType << "\t" << it->second.size() << endl;
 		cout << it->first << endl;
 	}
+	cout << endl;
+
+	cout << "object" << endl;
+	cout << "name" <<endl;
+	cout << "----" << endl;
+	for (auto it = this->object_.begin(); it != this->object_.end(); it++) {
+		cout << it->first << endl;
+	}
+	cout << endl;
 	return;
 }

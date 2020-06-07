@@ -29,6 +29,7 @@ struct entry {
 	bool isConst;
 	
 	entry() {}	// for variable declaration (hasn't define type)
+	// entry(const entry& e);	// copy constructor
 	entry(const dataType& t, const union V& v, const bool &isCon); // for constant exp
 	entry(const dataType& t);	// for variable declaration (has define type)
 	entry(const dataType& t, string* name);	// for formal argument
@@ -58,10 +59,10 @@ struct table {
 	map <string, vector<entry>> array_;	// store array variable
 	map <string, vector<entry>> func_;	// store function info
 	map <string, entry> object_;			// store object
-	int lookup(const string& name, const objType& objT) const;
+	const int lookup(const string& name, const objType& objT) const;
 	void insert(const string& name, const entry& e);	// for normal variable or ibject declaration
 	void insert(const string& name, const dataType& t, const int& size);	// for array declaration
 	void insert(const string& name, const dataType& t, const vector<entry>& list);	// for function declaration
 	void update(const string& name, const entry& e, const int& position , const bool& isArr);
-	void dump();
+	void dump() const;
 };

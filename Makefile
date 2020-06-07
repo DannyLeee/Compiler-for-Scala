@@ -14,3 +14,9 @@ parser: y.tab.cpp lex.yy.cpp symbolTable.h symbolTable.cpp
 
 clean:
 	rm lex.yy.* parser y.*
+
+test:
+	./parser HellowWorld.scala
+	./parser sigma.scala
+	./parser fib.scala
+	./parser example.scala

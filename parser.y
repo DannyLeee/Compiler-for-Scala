@@ -7,6 +7,7 @@
 void yyerror(string msg)
 {
     cerr << msg << endl;
+    exit(-1);   // TODO: remove it
 }
 
 int listLookup(const string& name, const vector <entry>& l)
@@ -21,13 +22,23 @@ int listLookup(const string& name, const vector <entry>& l)
 
 int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const objType& objT)
 {
+    // cout << "yacc debug: current_t= " << cur << endl;
+    // for (int i = cur; i >= 0; i--)
+    // {
+    //     cout << "table " << i << endl;
+    //     tableList[i].dump();
+    //     cout << endl;
+    // }
     int p = cur;
     // check all previous table
     while (p >= 0)
     {
         // lookup the symbol table and return variable's name
-        if (tableList[p].lookup(name, objT))
+        if (tableList[p].lookup(name, objT) != -1)
+        {
+            cout << "yacc debug: find " << name << " at table" << p << endl;
             return p;
+        }
         p -= 1;
     }
     return -1;
@@ -35,6 +46,7 @@ int isVarOrMethodName(const string& name, const vector<table>& tableList, const 
 
 int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter)
 {
+    cout << "yacc debug: " << argument.size() << " " << parameter.size() << endl;
     if (argument.size() > parameter.size() + 1)
         return -2;
     else if (argument.size() < parameter.size() + 1)
@@ -64,13 +76,11 @@ int current_t;
 /* keyword tokens */
 %token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE
 
-/* other tokens */
-%token OR AND LES LEQ EQU GRT GEQ NEQ
-
 %type <entryPt> constant_exp num exp bool_exp method_invocate return_
 %type <typeVal> type_
 %type <list>    formal_arguments comma_separate_exp
 
+/* other tokens */
 %token <strVal> STRING_ ID
 %token <intVal> INTEGER
 %token <realVal> REAL
@@ -100,12 +110,14 @@ constant_exp:   STRING_
                 num
                 {
                     $$ = $1;
+                    cout << "yacc debug (const_exp): " << $$->dType << " " << $$->val.iVal << endl;
                 } |
                 TRUE
                 {
                     entry* temp = new entry(BOOLEAN_, $1, true);
                     $$ = temp;
-                } | FALSE
+                } |
+                FALSE
                 {
                     entry* temp = new entry(BOOLEAN_, $1, true);
                     $$ = temp;
@@ -144,6 +156,7 @@ const_declar:   VAL ID type_ '=' constant_exp
                         if ($3 == NTYPE)
                         {
                             sTableList[current_t].insert(*$2, *$5);
+                            cout << "yacc debug: insert " << *$2 << " at table " << current_t << endl;
                         }
                         else
                         {
@@ -227,12 +240,11 @@ array_declar:   VAR ID type_ '[' exp ']'
                 };
 
     /* Program Units */
-_0_or_more_CONST_VAR:  const_declar | var_declar | array_declar | ;
+_0_or_more_CONST_VAR:  const_declar _0_or_more_CONST_VAR | var_declar _0_or_more_CONST_VAR | array_declar _0_or_more_CONST_VAR | ;
 _1_or_more_method:   method_declar | method_declar _1_or_more_method;
 
 obj_declar:     OBJECT ID
                 {
-                    Trace("debug");
                     // push ID into table
                     if (sTableList[current_t].lookup(*$2, objType::OBJ) == -1)
                     {
@@ -246,17 +258,18 @@ obj_declar:     OBJECT ID
                     // open a new symbol table
                     table new_t;
                     sTableList.push_back(new_t);
+                    current_t += 1;
                 } _0_or_more_CONST_VAR _1_or_more_method '}'
                 {
                     // delete the table in block
                     sTableList.pop_back();
+                    current_t -= 1;
                 };
 
 formal_arguments:   ID type_
                     {
                         Trace("Reducing to formal argument\n");
-                        Trace("debug: ");
-                        cout << "name: " << $1 << "type: " << $2 << endl;
+                        // cout <<"yacc debug: " << "name: " << *$1 << " type: " << $2 << endl;
                         // check type_ not NTYPE
                         if ($2 != NTYPE)
                         {
@@ -277,6 +290,7 @@ formal_arguments:   ID type_
                             // check the list hasn't have argument name ID
                             if (listLookup(*$3, *$1) == -1)
                             {
+                                cout << "yacc debug: " << "name: " << *$3 << " type: " << $4 << endl;
                                 // push back the new argument to the vector
                                 entry temp($4, $3);
                                 $1->push_back(temp);
@@ -316,6 +330,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         // push ID into table
                         // and bind the argument list to ID
                         sTableList[current_t].insert(*$2, $6, *$4);
+                        cout << "yacc debug: insert " << *$2 << " at table" << current_t << endl;
                     }
                     else
                         yyerror("redefinition method\n");
@@ -323,11 +338,18 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
                     // new a symbol table
                     table new_t;
+                    // insert argument variable to next table
+                    for (int i = 0; i < $4->size(); i++)
+                    {
+                        entry temp($4->at(i).dType);
+                        new_t.insert(*($4->at(i).val.sVal), temp);
+                    }
                     sTableList.push_back(new_t);
                     current_t += 1;
                 } _0_or_more_CONST_VAR _0_or_more_stmts return_
                 {
-                    if ($12->dType != $6)
+                    // cout << "yacc debug " << $12->dType << " " << $6 << endl;
+                    if ($12->dType == $6)
                         sTableList[current_t - 1].func_[*$2][0] = *$12;  // bind the return value
                     else
                         yyerror("wrong return type\n");
@@ -335,22 +357,48 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
                     // delete the table in block
                     sTableList.pop_back();
+                    current_t -= 1;
                 };
 
     /* Statements */
-stmts:          exp | simple_stmts | block | conditional | loop;
+stmts:          exp
+                {
+                    delete $1;
+                } | simple_stmts | block | conditional | loop;
 
-exp:            constant_exp | bool_exp | method_invocate |
+exp:            constant_exp
+                {
+                    $$ = $1;
+                    cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
+                } | bool_exp |
+                method_invocate
+                {
+                    $$ = $1;
+                    cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
+                } |
                 ID
                 {
                     int p;
+
                     if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
                     {
-                        // do nothing
+                        // copy constructor
+                        // entry temp = sTableList[p].entry_[*$1];
+                        // $$ = &temp;
+                        // cout << "type: " << $$->dType << " val: " << $$->val.iVal << endl;
+
+                        entry* temp = new entry();
+                        *temp = sTableList[p].entry_[*$1];
+                        $$ = temp;
+                        cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
+                        Trace("Reducing to exp from ID\n");
                     }
                     else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
                     {
-                        // procedure invocate
+                        // method invocate
+                        entry* temp = new entry();
+                        *temp = sTableList[p].func_[*$1][0];
+                        $$ = temp;
                         // P3TODO:
                     }
                     else
@@ -358,49 +406,57 @@ exp:            constant_exp | bool_exp | method_invocate |
                 } |
                 exp '+' exp
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    cout <<"yacc debug (+): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 + *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp '-' exp
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                     {
                         *$$ = *$1 - *$3;
+                        Trace("Reducing to exp from sub\n");
                     }
                     else 
-                    {
-                        yyerror("type error\n");
-                    }
+                        yyerror(" operand type error\n");
                 } |
                 exp '*' exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 * *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp '/' exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 / *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp '%' exp
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 % *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 '-' exp %prec UMINUS
                 {
+                    cout << "yacc debug: type: " << $2->dType << endl;
                     if ($2->dType == INT_ || $2->dType == REAL_)
-                        *$$ = -(*$2);
+                    {
+                        cout << "test0" << endl;
+                        // *$$ = -(*$2);    //don't know why segment fault int assign overload
+                        entry* temp = new entry();
+                        temp->dType = $2->dType;
+                        cout << "test2" << endl;
+                        Trace("Reducing to exp from minus\n");
+                    }
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 '(' exp ')'
                 {
@@ -408,7 +464,10 @@ exp:            constant_exp | bool_exp | method_invocate |
                 };
 
     // simple
-simple_stmts:   PRINT exp | PRINTLN exp |
+simple_stmts:   PRINT exp
+                {
+                    Trace("Reducing to simple stmt\n");
+                } | PRINTLN exp |
                 READ ID
                 {
                     int p = isVarOrMethodName(*$2, sTableList, current_t, objType::VAR_);
@@ -447,17 +506,16 @@ simple_stmts:   PRINT exp | PRINTLN exp |
                 };
 
     // function invocation
-comma_separate_exp: constant_exp
+comma_separate_exp: exp
                     {
                         Trace("Reducing to comma separeate exp\n");
-                        Trace("debug: ");
-                        cout << "type: " << $1->dType << endl;
+                        cout << "yacc debug: " << "type: " << $1->dType << endl;
                         // new a vector<entry> to store whole formal parameter
                         vector<entry>* parameterList = new vector<entry>;
                         parameterList->push_back(*$1);
                         $$ = parameterList;
                     } |
-                    comma_separate_exp ',' constant_exp
+                    comma_separate_exp ',' exp
                     {
                         // push back the new parameter to the vector
                         $1->push_back(*$3);
@@ -480,6 +538,7 @@ block:          '{'
                 {
                     // delete the table in block
                     sTableList.pop_back();
+                    current_t -= 1;
                 };
 
     // conditional
@@ -488,67 +547,77 @@ bool_exp:       '!' exp
                     if ($2->dType == BOOLEAN_)
                         *$$ = !(*$2);
                     else
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp LES exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 < *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp GRT exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    // cout << "yacc debug: current_t= " << current_t << endl;
+                    // for (int i = current_t; i >= 0; i--)
+                    // {
+                    //     cout << "table " << i << endl;
+                    //     sTableList[i].dump();
+                    //     cout << endl;
+                    // }
+
+                    cout <<"yacc debug (>): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
+
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 > *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp LEQ exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 <= *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp EQU exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 == *$3;
                     else if ($1->dType == $3->dType)
                         *$$ = *$1 == *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp GEQ exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 >= *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp NEQ exp 
                 {
-                    if ($1->dType == INT_ || $1->dType == REAL_ && $3->dType == INT_ || $3->dType == REAL_)
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 != *$3;
                     else if ($1->dType == $3->dType)
                         *$$ = *$1 != *$3;
                     else 
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp AND exp 
                 {
                     if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
                         *$$ = *$1 && *$3;
                     else
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 } |
                 exp OR exp
                 {
                     if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
                         *$$ = *$1 || *$3;
                     else
-                        yyerror("type error\n");
+                        yyerror("operand type error\n");
                 };
 
 conditional:    IF '(' bool_exp ')' block |
@@ -568,7 +637,8 @@ num:            REAL
                 {
                     entry* temp = new entry(INT_, $1, true);
                     $$ = temp;
-                }
+                    cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
+                };
 
 loop:           WHILE '(' bool_exp ')' block |
                 WHILE '(' bool_exp ')' simple_stmts |
@@ -583,6 +653,14 @@ method_invocate:    ID '(' comma_separate_exp ')'
                         {
                             // check parameters' data type
                             int Flag = parameterCheck(sTableList[p].func_[*$1], *$3);
+                            // cout << "yacc debug: current_t= " << current_t << " p= " << p << endl;
+                            // for (int i = p; i >= 0; i--)
+                            // {
+                            //     cout << "table " << i << endl;
+                            //     sTableList[i].dump();
+                            //     cout << endl;
+                            // }
+
                             switch (Flag)
                             {
                             case 1:
@@ -593,8 +671,10 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                 }
                                 else
                                 {
-                                    entry temp = sTableList[p].func_[*$1][0];
-                                    $$ = &temp;  // function will return the return value 
+                                    entry* temp = new entry();
+                                    *temp = sTableList[p].func_[*$1][0];
+                                    $$ = temp;  // function will return the return value 
+                                    cout << "yacc debug: type: " << $$->dType << " val: " << $$->val.iVal << endl;
                                     // P3TODO:
                                 }
                                 break;
