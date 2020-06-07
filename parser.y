@@ -674,7 +674,14 @@ loop:           WHILE '(' bool_exp ')' block |
 method_invocate:    ID '(' comma_separate_exp ')'
                     {
                         int p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC);
-                        if (p != -1)
+                        int q = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
+                        if (q > p)
+                        {
+                            string msg = "'";
+                            msg += *$1 + "' cannot be used as a function";
+                            yyerror(msg);
+                        }
+                        else if (p != -1)
                         {
                             // check parameters' data type
                             int Flag = parameterCheck(sTableList[p].func_[*$1], *$3);
@@ -686,6 +693,7 @@ method_invocate:    ID '(' comma_separate_exp ')'
                             //     cout << endl;
                             // }
 
+                            string msg;
                             switch (Flag)
                             {
                             case 1:
@@ -704,20 +712,26 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                 }
                                 break;
                             case -1:
-                                yyerror("parameter type error\n");
+                                yyerror("invalid parameter type");
                                 break;
                             case -2:
-                                yyerror(" too few arguments\n");
+                                msg = "too few arguments to function '";
+                                msg += *$1 + "'";
+                                yyerror(msg);
                                 break;
                             case -3:
-                                yyerror(" too many arguments\n");
+                                msg = "too many arguments to function '";
+                                msg += *$1 + "'";
+                                yyerror(msg);
                                 break;
                             }
                         }
-                        else if (isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_))
-                            yyerror("not a function");
                         else
-                            yyerror("method name not found\n");
+                        {
+                            string msg = "'";
+                            msg += *$1 + "' was not declared in this scope";
+                            yyerror(msg);
+                        }
                         
                     };
 
