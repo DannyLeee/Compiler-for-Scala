@@ -250,7 +250,6 @@ entry entry::operator!() {
 
 entry entry::operator-() {
 	// cout << "debug: calling operator minus" << endl;
-	cout << "type: " << this->dType << " " << this->val.iVal << " test1" << endl;
 	if (this->dType == INT_)
 	{
 		entry temp(INT_, this->val.iVal, false);
@@ -356,8 +355,8 @@ void table::dump() const {
 	cout << "name\ttype\targSize" << endl;
 	cout << "-----------------------" << endl;
 	for (auto it = this->func_.begin(); it != this->func_.end(); it++) {
-		// cout << it->first << "\t" << it->second[0].dType << "\t" << it->second.size() << endl;
-		cout << it->first << endl;
+		cout << it->first << "\t" << it->second[0].dType << "\t" << it->second.size() << endl;
+		// cout << it->first << endl;
 	}
 	cout << endl;
 

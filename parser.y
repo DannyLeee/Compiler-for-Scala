@@ -59,6 +59,8 @@ vector <table> sTableList;
 int current_t;
 int m_count;
 string fileName;
+string currentMethod;
+int whereMethod;
 %}
 
 %union {
@@ -75,7 +77,7 @@ string fileName;
 /* keyword tokens */
 %token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE
 
-%type <entryPt> constant_exp num exp bool_exp method_invocate return_ t_f
+%type <entryPt> constant_exp num exp bool_exp method_invocate t_f
 %type <typeVal> type_
 %type <list>    formal_arguments comma_separate_exp
 
@@ -347,18 +349,6 @@ formal_arguments:   ID type_
 
 block_content: data_declar block_content | stmts block_content | ;
 
-return_:        RETURN
-                {
-                    $$ = new entry(NTYPE);
-                } |
-                RETURN exp
-                {
-                    $$ = $2;
-                } |
-                {
-                    $$ = new entry(NTYPE);
-                };
-
 method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
                     // check the table no function name ID
@@ -368,6 +358,16 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         // and bind the argument list to ID
                         sTableList[current_t].insert(*$2, $6, *$4);
                         // cout << "yacc debug: insert " << *$2 << " at table" << current_t << endl;
+                        currentMethod = *$2;
+                        whereMethod = 0;
+
+                        cout << "yacc debug: current_t= " << current_t << endl;
+                        for (int i = current_t; i >= 0; i--)
+                        {
+                            cout << "table " << i << endl;
+                            sTableList[i].dump();
+                            cout << endl;
+                        }
                     }
                     else
                     {
@@ -387,19 +387,14 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     }
                     sTableList.push_back(new_t);
                     current_t += 1;
-                } block_content return_
-                {
-                    // cout << "yacc debug " << $12->dType << " " << $6 << endl;
-                    if ($11->dType == $6)
-                        sTableList[current_t - 1].func_[*$2][0] = *$11;  // bind the return value
-                    else
-                        yyerror("type error - invalid conversion");
-                } '}'
+                    whereMethod -= 1;
+                } block_content '}'
                 {
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
                     m_count += 1;
+                    whereMethod += 1;
                 };
 
     /* Statements */
@@ -491,14 +486,13 @@ exp:            constant_exp
                 } |
                 '-' exp %prec UMINUS
                 {
-                    // cout << "yacc debug: type: " << $2->dType << endl;
+                    cout << "yacc debug(-): type: " << $2->dType << endl;
                     if ($2->dType == INT_ || $2->dType == REAL_)
                     {
-                        cout << "test0" << endl;
                         // *$$ = -(*$2);    //don't know why segment fault int assign overload
                         entry* temp = new entry();
                         temp->dType = $2->dType;
-                        cout << "test2" << endl;
+                        $$ = temp;
                         Trace("Reducing to exp from minus\n");
                     }
                     else 
@@ -510,9 +504,40 @@ exp:            constant_exp
                 };
 
     // simple
-simple_stmts:   PRINT exp
+simple_stmts:   RETURN
                 {
-                    Trace("Reducing to simple stmt\n");
+                    // error handle
+                    if (sTableList[current_t + whereMethod].lookup(currentMethod, objType::FUNC) == -1)
+                    {
+                        cerr << "symbol table error" << endl;
+                        exit(-1);
+                    }
+                    if (sTableList[current_t + whereMethod].func_[currentMethod][0].dType == NTYPE)
+                    {
+                        entry temp(NTYPE);
+                        sTableList[current_t + whereMethod].func_[currentMethod][0] = temp;  // bind the return value
+                    }
+                    else
+                        yyerror("return type error - invalid conversion");
+                } |
+                RETURN exp
+                {
+                    
+                    // error handle
+                    if (sTableList[current_t + whereMethod].lookup(currentMethod, objType::FUNC) == -1)
+                    {
+                        cerr << "symbol table error" << endl;
+                        exit(-1);
+                    }
+                    cout << "yacc debug(return): type: " << $2->dType << endl;
+                    if ($2->dType == sTableList[current_t + whereMethod].func_[currentMethod][0].dType)
+                        sTableList[current_t + whereMethod].func_[currentMethod][0] = *$2;  // bind the return value
+                    else
+                        yyerror("return type error - invalid conversion");
+                } |
+                PRINT exp
+                {
+                    Trace("Reducing to simple stmt from print\n");
                 } | PRINTLN exp |
                 READ ID
                 {
@@ -607,11 +632,13 @@ block:          '{'
                     table new_t;
                     sTableList.push_back(new_t);
                     current_t +=1;
+                    whereMethod -= 1;
                 } block_content '}'
                 {
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
+                    whereMethod += 1;
                 };
 
     // conditional
@@ -710,10 +737,8 @@ num:            REAL
                     // cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
                 };
 
-loop:           WHILE '(' bool_exp ')' block |
-                WHILE '(' bool_exp ')' simple_stmts |
-                FOR '(' ID '<''-' num TO num ')' block |
-                FOR '(' ID '<''-' num TO num ')' simple_stmts;
+loop:           WHILE '(' bool_exp ')' stmts |
+                FOR '(' ID '<''-' num TO num ')' stmts;
 
     /* function or procedure invocation */
 method_invocate:    ID '(' comma_separate_exp ')'
@@ -803,6 +828,6 @@ int main(int argc, char *argv[])
 
 void yyerror(string msg)
 {
-    cerr << fileName << ":" << linenum << ": error: ";
+    cerr << fileName << ":" << linenum - 1 << ": error: ";
     cerr << msg << endl;
 }
