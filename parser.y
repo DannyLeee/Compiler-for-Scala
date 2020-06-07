@@ -66,6 +66,7 @@ int current_t;
 %union {
     int intVal;
     entry* entryPt;
+    char cVal;
     string* strVal;
     double realVal;
     bool boolVal;
@@ -81,7 +82,7 @@ int current_t;
 %type <list>    formal_arguments comma_separate_exp
 
 /* other tokens */
-%token <strVal> STRING_ ID
+%token <strVal> _CHAR_ STRING_ ID
 %token <intVal> INTEGER
 %token <realVal> REAL
 %token <boolVal> TRUE FALSE
@@ -102,7 +103,12 @@ program:    obj_declar program |
 
     /* Data Types and Declarations */
     // any type of the variable expression
-constant_exp:   STRING_
+constant_exp:   _CHAR_
+                {
+                    entry* temp = new entry(CHAR_, $1, true);
+                    $$ = temp;
+                } |
+                STRING_
                 {
                     entry* temp = new entry(STR_, $1, true);
                     $$ = temp;
@@ -261,6 +267,14 @@ obj_declar:     OBJECT ID
                     current_t += 1;
                 } _0_or_more_CONST_VAR _1_or_more_method '}'
                 {
+                    // cout << "yacc debug: current_t= " << current_t << endl;
+                    // for (int i = current_t; i >= 0; i--)
+                    // {
+                    //     cout << "table " << i << endl;
+                    //     sTableList[i].dump();
+                    //     cout << endl;
+                    // }
+
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;

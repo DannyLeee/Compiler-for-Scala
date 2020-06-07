@@ -230,6 +230,15 @@ while   {
     return REAL;
 }
 
+    /* char */
+\'.\'       {
+    string temp = yytext;
+    LIST;
+    printf("<char %c>\n", temp[1]);
+    yylval.cVal = temp[1];
+    return _CHAR_;
+}
+
     /* string */
 \"[^"^\n]*\"   {
     char c = getc(yyin);   // next character   // yytext no change
