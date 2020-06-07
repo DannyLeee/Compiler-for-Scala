@@ -106,23 +106,23 @@ program:    obj_declar program |
     // any type of the variable expression
 constant_exp:   _CHAR_
                 {
-                    entry* temp = new entry(CHAR_, $1, true);
+                    entry* temp = new entry(CHAR_, $1, false);
                     $$ = temp;
                 } |
                 STRING_
                 {
-                    entry* temp = new entry(STR_, $1, true);
+                    entry* temp = new entry(STR_, $1, false);
                     $$ = temp;
                 } | num | bool_exp;
 
 t_f:            TRUE
                 {
-                    entry* temp = new entry(BOOLEAN_, $1, true);
+                    entry* temp = new entry(BOOLEAN_, $1, false);
                     $$ = temp;
                 } |
                 FALSE
                 {
-                    entry* temp = new entry(BOOLEAN_, $1, true);
+                    entry* temp = new entry(BOOLEAN_, $1, false);
                     $$ = temp;
                 };
 
@@ -166,7 +166,8 @@ const_declar:   VAL ID type_ '=' exp
                             if ($3 == $5->dType)
                             {
                                 Trace("Reducing to constant declar\n");
-                                sTableList[current_t].insert(*$2, *$5);
+                                entry temp($5->dType, $5->val, true);
+                                sTableList[current_t].insert(*$2, temp);
                             }
                             else
                                 yyerror("type error\n");
@@ -253,6 +254,7 @@ obj_declar:     OBJECT ID
                     {
                         entry temp(OBJ_);
                         sTableList[current_t].insert(*$2, temp);
+                        m_count = 0;
                     }
                     else
                         yyerror("redefinition object\n");
@@ -653,12 +655,12 @@ conditional:    IF '(' bool_exp ')' stmts |
     // loop
 num:            REAL
                 {
-                    entry* temp = new entry(REAL_, $1, true);
+                    entry* temp = new entry(REAL_, $1, false);
                     $$ = temp;
                 } |
                 INTEGER
                 {
-                    entry* temp = new entry(INT_, $1, true);
+                    entry* temp = new entry(INT_, $1, false);
                     $$ = temp;
                     cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
                 };
