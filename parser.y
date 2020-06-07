@@ -4,11 +4,7 @@
 #include "lex.yy.cpp"
 #define Trace(t)        printf(t)
 
-void yyerror(string msg)
-{
-    cerr << msg << endl;
-    exit(-1);   // TODO: remove it
-}
+void yyerror(string msg);
 
 int listLookup(const string& name, const vector <entry>& l)
 {
@@ -36,7 +32,7 @@ int isVarOrMethodName(const string& name, const vector<table>& tableList, const 
         // lookup the symbol table and return variable's name
         if (tableList[p].lookup(name, objT) != -1)
         {
-            cout << "yacc debug: find " << name << " at table" << p << endl;
+            // cout << "yacc debug: find " << name << " at table" << p << endl;
             return p;
         }
         p -= 1;
@@ -46,7 +42,7 @@ int isVarOrMethodName(const string& name, const vector<table>& tableList, const 
 
 int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter)
 {
-    cout << "yacc debug: " << argument.size() << " " << parameter.size() << endl;
+    // cout << "yacc debug: " << argument.size() << " " << parameter.size() << endl;
     if (argument.size() > parameter.size() + 1)
         return -2;
     else if (argument.size() < parameter.size() + 1)
@@ -62,6 +58,7 @@ int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter
 vector <table> sTableList;
 int current_t;
 int m_count;
+string fileName;
 %}
 
 %union {
@@ -159,7 +156,7 @@ const_declar:   VAL ID type_ '=' exp
                         if ($3 == NTYPE)
                         {
                             sTableList[current_t].insert(*$2, *$5);
-                            cout << "yacc debug: insert " << *$2 << " at table " << current_t << endl;
+                            // cout << "yacc debug: insert " << *$2 << " at table " << current_t << endl;
                         }
                         else
                         {
@@ -170,11 +167,15 @@ const_declar:   VAL ID type_ '=' exp
                                 sTableList[current_t].insert(*$2, temp);
                             }
                             else
-                                yyerror("type error\n");
+                                yyerror("type error - invalid conversion");
                         }
                     }
                     else
-                        yyerror("conflicting declaration\n");
+                    {
+                        string msg = "conflicting declaration '";
+                        msg += *$2 + "'";
+                        yyerror(msg);
+                    }
                 };
 
 var_declar:     VAR ID type_
@@ -195,7 +196,11 @@ var_declar:     VAR ID type_
                         }
                     }
                     else
-                        yyerror("conflicting declaration\n");
+                    {
+                        string msg = "conflicting declaration '";
+                        msg += *$2 + "'";
+                        yyerror(msg);
+                    }
                 } |
                 VAR ID type_ '=' exp
                 {
@@ -216,12 +221,16 @@ var_declar:     VAR ID type_
                             }
                             else
                             {
-                                yyerror("type error\n");
+                                yyerror("type error - invalid conversion");
                             }
                         }
                     }
                     else
-                        yyerror("conflicting declaration\n");
+                    {
+                        string msg = "conflicting declaration '";
+                        msg += *$2 + "'";
+                        yyerror(msg);
+                    }
                 };
 
 array_declar:   VAR ID type_ '[' exp ']'
@@ -231,16 +240,20 @@ array_declar:   VAR ID type_ '[' exp ']'
                     {
                         // insert symbol table
                         if ($3 == NTYPE)
-                            yyerror("array don't has type\n");
+                            yyerror("array don't has type");
                         else if ($5->dType != INT_)
-                            yyerror("not integer inside []\n");
+                            yyerror("not integer inside []");
                         else
                         {
                             sTableList[current_t].insert(*$2, $3, $5->val.iVal);
                         }
                     }
                     else
-                        yyerror("conflicting declaration\n");
+                    {
+                        string msg = "conflicting declaration '";
+                        msg += *$2 + "'";
+                        yyerror(msg);
+                    }
                 };
 
     /* Program Units */
@@ -257,7 +270,11 @@ obj_declar:     OBJECT ID
                         m_count = 0;
                     }
                     else
-                        yyerror("redefinition object\n");
+                    {
+                        string msg = "redefine object '";
+                        msg += *$2 + "'";
+                        yyerror(msg);
+                    }
                 } '{'
                 {
                     // open a new symbol table
@@ -274,7 +291,7 @@ obj_declar:     OBJECT ID
                     //     cout << endl;
                     // }
                     if (m_count < 1)
-                        yyerror("object needs atleast one method inside\n");
+                        yyerror("object needs atleast one method inside");
 
                     // delete the table in block
                     sTableList.pop_back();
@@ -296,7 +313,7 @@ formal_arguments:   ID type_
                             $$ = arguList;
                         }
                         else
-                            yyerror("formal argument needs type\n");
+                            yyerror("formal argument needs to define type");
                     } |
                     formal_arguments ',' ID type_
                     {
@@ -306,17 +323,21 @@ formal_arguments:   ID type_
                             // check the list hasn't have argument name ID
                             if (listLookup(*$3, *$1) == -1)
                             {
-                                cout << "yacc debug: " << "name: " << *$3 << " type: " << $4 << endl;
+                                // cout << "yacc debug: " << "name: " << *$3 << " type: " << $4 << endl;
                                 // push back the new argument to the vector
                                 entry temp($4, $3);
                                 $1->push_back(temp);
                                 $$ = $1;
                             }
                             else
-                                yyerror("redefinition argument\n");
+                            {
+                                string msg = "redefine argument '";
+                                msg += *$3 + "'";
+                                yyerror(msg);
+                            }
                         }
                         else
-                            yyerror("formal argument needs type\n");
+                            yyerror("formal argument needs to define type");
                     } |
                     {
                         // return empty list
@@ -346,10 +367,14 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         // push ID into table
                         // and bind the argument list to ID
                         sTableList[current_t].insert(*$2, $6, *$4);
-                        cout << "yacc debug: insert " << *$2 << " at table" << current_t << endl;
+                        // cout << "yacc debug: insert " << *$2 << " at table" << current_t << endl;
                     }
                     else
-                        yyerror("redefinition method\n");
+                    {
+                        string msg = "redefine method '";
+                        msg += *$2 + "'";
+                        yyerror(msg);
+                    }
                 } '{'
                 {
                     // new a symbol table
@@ -368,7 +393,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     if ($11->dType == $6)
                         sTableList[current_t - 1].func_[*$2][0] = *$11;  // bind the return value
                     else
-                        yyerror("wrong return type\n");
+                        yyerror("type error - invalid conversion");
                 } '}'
                 {
                     // delete the table in block
@@ -386,12 +411,12 @@ stmts:          exp
 exp:            constant_exp
                 {
                     $$ = $1;
-                    cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << " " << $$->isConst << endl;
+                    // cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << " " << $$->isConst << endl;
                 } |
                 method_invocate
                 {
                     $$ = $1;
-                    cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
+                    // cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
                 } |
                 ID
                 {
@@ -407,7 +432,7 @@ exp:            constant_exp
                         entry* temp = new entry();
                         *temp = sTableList[p].entry_[*$1];
                         $$ = temp;
-                        cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
+                        // cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
                         Trace("Reducing to exp from ID\n");
                     }
                     else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
@@ -419,15 +444,19 @@ exp:            constant_exp
                         // P3TODO:
                     }
                     else
-                        yyerror("varirable or method name not found\n");
+                    {
+                        string msg = "'";
+                        msg += *$1 + "' was not declared in this scope";
+                        yyerror(msg);
+                    }
                 } |
                 exp '+' exp
                 {
-                    cout <<"yacc debug (+): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
+                    // cout <<"yacc debug (+): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 + *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator+'");
                 } |
                 exp '-' exp
                 {
@@ -437,32 +466,32 @@ exp:            constant_exp
                         Trace("Reducing to exp from sub\n");
                     }
                     else 
-                        yyerror(" operand type error\n");
+                        yyerror("no match for 'operator-'");
                 } |
                 exp '*' exp 
                 {
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 * *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator*'");
                 } |
                 exp '/' exp 
                 {
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 / *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator/'");
                 } |
                 exp '%' exp
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 % *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator%'");
                 } |
                 '-' exp %prec UMINUS
                 {
-                    cout << "yacc debug: type: " << $2->dType << endl;
+                    // cout << "yacc debug: type: " << $2->dType << endl;
                     if ($2->dType == INT_ || $2->dType == REAL_)
                     {
                         cout << "test0" << endl;
@@ -473,7 +502,7 @@ exp:            constant_exp
                         Trace("Reducing to exp from minus\n");
                     }
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator-'");
                 } |
                 '(' exp ')'
                 {
@@ -493,7 +522,11 @@ simple_stmts:   PRINT exp
                         // P3TODO:
                     }
                     else
-                        yyerror("varirable name not found\n");
+                    {
+                        string msg = "'";
+                        msg += *$2 + "' was not declared in this scope";
+                        yyerror(msg);
+                    }
                 } |
                 ID '=' exp 
                 {
@@ -512,10 +545,18 @@ simple_stmts:   PRINT exp
                             // assign the value to ID
                             sTableList[p].update(*$1, *$3, 0, false);
                         else
-                            yyerror("assignment of constant variable\n");
+                        {
+                            string msg = "assignment of read-only variable '";
+                            msg += *$1 + "'";
+                            yyerror(msg);
+                        }
                     }
                     else
-                        yyerror("varirable name not found\n");
+                    {
+                        string msg = "'";
+                        msg += *$1 + "' was not declared in this scope";
+                        yyerror(msg);
+                    }
                 } |
                 ID '[' exp ']' '=' exp
                 {
@@ -527,17 +568,21 @@ simple_stmts:   PRINT exp
                             // assign the value to ID[i]
                             sTableList[p].update(*$1, *$6, $3->val.iVal, true);
                         else
-                            yyerror("not integer in []\n");
+                            yyerror("not integer inside []");
                     }
                     else
-                        yyerror("varirable name not found\n");
+                    {
+                        string msg = "'";
+                        msg += *$1 + "' was not declared in this scope";
+                        yyerror(msg);
+                    }
                 };
 
     // function invocation
 comma_separate_exp: exp
                     {
                         Trace("Reducing to comma separeate exp\n");
-                        cout << "yacc debug: " << "type: " << $1->dType << endl;
+                        // cout << "yacc debug: " << "type: " << $1->dType << endl;
                         // new a vector<entry> to store whole formal parameter
                         vector<entry>* parameterList = new vector<entry>;
                         parameterList->push_back(*$1);
@@ -576,14 +621,14 @@ bool_exp:       t_f |
                     if ($2->dType == BOOLEAN_)
                         *$$ = !(*$2);
                     else
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator!'");
                 } |
                 exp LES exp 
                 {
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 < *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator<'");
                 } |
                 exp GRT exp 
                 {
@@ -595,19 +640,19 @@ bool_exp:       t_f |
                     //     cout << endl;
                     // }
 
-                    cout <<"yacc debug (>): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
+                    // cout <<"yacc debug (>): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
 
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 > *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator>'");
                 } |
                 exp LEQ exp 
                 {
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 <= *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator<='");
                 } |
                 exp EQU exp 
                 {
@@ -616,14 +661,14 @@ bool_exp:       t_f |
                     else if ($1->dType == $3->dType)
                         *$$ = *$1 == *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator=='");
                 } |
                 exp GEQ exp 
                 {
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 >= *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator>='");
                 } |
                 exp NEQ exp 
                 {
@@ -632,21 +677,21 @@ bool_exp:       t_f |
                     else if ($1->dType == $3->dType)
                         *$$ = *$1 != *$3;
                     else 
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator!='");
                 } |
                 exp AND exp 
                 {
                     if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
                         *$$ = *$1 && *$3;
                     else
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator&&'");
                 } |
                 exp OR exp
                 {
                     if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
                         *$$ = *$1 || *$3;
                     else
-                        yyerror("operand type error\n");
+                        yyerror("no match for 'operator||'");
                 };
 
 conditional:    IF '(' bool_exp ')' stmts |
@@ -662,7 +707,7 @@ num:            REAL
                 {
                     entry* temp = new entry(INT_, $1, false);
                     $$ = temp;
-                    cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
+                    // cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
                 };
 
 loop:           WHILE '(' bool_exp ')' block |
@@ -707,7 +752,7 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                     entry* temp = new entry();
                                     *temp = sTableList[p].func_[*$1][0];
                                     $$ = temp;  // function will return the return value 
-                                    cout << "yacc debug: type: " << $$->dType << " val: " << $$->val.iVal << endl;
+                                    // cout << "yacc debug: type: " << $$->dType << " val: " << $$->val.iVal << endl;
                                     // P3TODO:
                                 }
                                 break;
@@ -745,6 +790,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
     yyin = fopen(argv[1], "r");         /* open input file */
+    fileName = argv[1];
 
     table mainTable;
     sTableList.push_back(mainTable);
@@ -752,5 +798,11 @@ int main(int argc, char *argv[])
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
-        yyerror("Parsing error !\n");     /* syntax error */
+        cout << "Parsing error !" << endl;     /* syntax error */
+}
+
+void yyerror(string msg)
+{
+    cerr << fileName << ":" << linenum << ": error: ";
+    cerr << msg << endl;
 }

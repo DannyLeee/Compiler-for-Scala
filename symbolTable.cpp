@@ -249,7 +249,7 @@ entry entry::operator!() {
 }
 
 entry entry::operator-() {
-	cout << "debug: calling operator minus" << endl;
+	// cout << "debug: calling operator minus" << endl;
 	cout << "type: " << this->dType << " " << this->val.iVal << " test1" << endl;
 	if (this->dType == INT_)
 	{
@@ -283,7 +283,7 @@ const int table::lookup(const string& name, const objType& objT) const {
 }
 
 void table::insert(const string & name, const entry& e) {
-	cout << "debug: calling insert isConst: " << e.isConst << endl;
+	// cout << "debug: calling insert isConst: " << e.isConst << endl;
 	if (e.dType == OBJ_)
 		this->object_[name] = e;
 	else
