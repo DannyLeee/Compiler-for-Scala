@@ -61,6 +61,7 @@ int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter
 
 vector <table> sTableList;
 int current_t;
+int m_count;
 %}
 
 %union {
@@ -242,8 +243,8 @@ array_declar:   VAR ID type_ '[' exp ']'
                 };
 
     /* Program Units */
-_0_or_more_CONST_VAR:  const_declar _0_or_more_CONST_VAR | var_declar _0_or_more_CONST_VAR | array_declar _0_or_more_CONST_VAR | ;
-_1_or_more_method:   method_declar | method_declar _1_or_more_method;
+data_declar:    const_declar | var_declar | array_declar;
+obj_content:    method_declar | data_declar | method_declar obj_content | data_declar obj_content;
 
 obj_declar:     OBJECT ID
                 {
@@ -261,7 +262,7 @@ obj_declar:     OBJECT ID
                     table new_t;
                     sTableList.push_back(new_t);
                     current_t += 1;
-                } _0_or_more_CONST_VAR _1_or_more_method '}'
+                } obj_content '}'
                 {
                     // cout << "yacc debug: current_t= " << current_t << endl;
                     // for (int i = current_t; i >= 0; i--)
@@ -270,10 +271,13 @@ obj_declar:     OBJECT ID
                     //     sTableList[i].dump();
                     //     cout << endl;
                     // }
+                    if (m_count < 1)
+                        yyerror("object needs atleast one method inside\n");
 
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
+                    m_count = 0;
                 };
 
 formal_arguments:   ID type_
@@ -318,7 +322,7 @@ formal_arguments:   ID type_
                         $$ = list;
                     };
 
-_0_or_more_stmts: stmts _0_or_more_stmts | ;
+block_content: data_declar block_content | stmts block_content | ;
 
 return_:        RETURN
                 {
@@ -356,11 +360,11 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     }
                     sTableList.push_back(new_t);
                     current_t += 1;
-                } _0_or_more_CONST_VAR _0_or_more_stmts return_
+                } block_content return_
                 {
                     // cout << "yacc debug " << $12->dType << " " << $6 << endl;
-                    if ($12->dType == $6)
-                        sTableList[current_t - 1].func_[*$2][0] = *$12;  // bind the return value
+                    if ($11->dType == $6)
+                        sTableList[current_t - 1].func_[*$2][0] = *$11;  // bind the return value
                     else
                         yyerror("wrong return type\n");
                 } '}'
@@ -368,6 +372,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
+                    m_count += 1;
                 };
 
     /* Statements */
@@ -555,7 +560,7 @@ block:          '{'
                     table new_t;
                     sTableList.push_back(new_t);
                     current_t +=1;
-                } _0_or_more_CONST_VAR _0_or_more_stmts '}'
+                } block_content '}'
                 {
                     // delete the table in block
                     sTableList.pop_back();
