@@ -77,7 +77,7 @@ int current_t;
 /* keyword tokens */
 %token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE
 
-%type <entryPt> constant_exp num exp bool_exp method_invocate return_
+%type <entryPt> constant_exp num exp bool_exp method_invocate return_ t_f
 %type <typeVal> type_
 %type <list>    formal_arguments comma_separate_exp
 
@@ -112,13 +112,9 @@ constant_exp:   _CHAR_
                 {
                     entry* temp = new entry(STR_, $1, true);
                     $$ = temp;
-                } |
-                num
-                {
-                    $$ = $1;
-                    cout << "yacc debug (const_exp): " << $$->dType << " " << $$->val.iVal << endl;
-                } |
-                TRUE
+                } | num | bool_exp;
+
+t_f:            TRUE
                 {
                     entry* temp = new entry(BOOLEAN_, $1, true);
                     $$ = temp;
@@ -153,7 +149,7 @@ type_:          ':' CHAR
                     $$ = dataType::NTYPE;
                 };
 
-const_declar:   VAL ID type_ '=' constant_exp
+const_declar:   VAL ID type_ '=' exp
                 {
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
@@ -199,7 +195,7 @@ var_declar:     VAR ID type_
                     else
                         yyerror("conflicting declaration\n");
                 } |
-                VAR ID type_ '=' constant_exp
+                VAR ID type_ '=' exp
                 {
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
@@ -384,7 +380,7 @@ exp:            constant_exp
                 {
                     $$ = $1;
                     cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
-                } | bool_exp |
+                } |
                 method_invocate
                 {
                     $$ = $1;
@@ -556,7 +552,8 @@ block:          '{'
                 };
 
     // conditional
-bool_exp:       '!' exp 
+bool_exp:       t_f |
+                '!' exp 
                 {
                     if ($2->dType == BOOLEAN_)
                         *$$ = !(*$2);
