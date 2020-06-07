@@ -61,6 +61,7 @@ int m_count;
 string fileName;
 string currentMethod;
 int whereMethod;
+int error;
 %}
 
 %union {
@@ -75,7 +76,7 @@ int whereMethod;
 }
 
 /* keyword tokens */
-%token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE
+%token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE ARROW
 
 %type <entryPt> constant_exp num exp bool_exp method_invocate t_f
 %type <typeVal> type_
@@ -361,13 +362,13 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         currentMethod = *$2;
                         whereMethod = 0;
 
-                        cout << "yacc debug: current_t= " << current_t << endl;
-                        for (int i = current_t; i >= 0; i--)
-                        {
-                            cout << "table " << i << endl;
-                            sTableList[i].dump();
-                            cout << endl;
-                        }
+                        // cout << "yacc debug: current_t= " << current_t << endl;
+                        // for (int i = current_t; i >= 0; i--)
+                        // {
+                        //     cout << "table " << i << endl;
+                        //     sTableList[i].dump();
+                        //     cout << endl;
+                        // }
                     }
                     else
                     {
@@ -398,21 +399,9 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                 };
 
     /* Statements */
-stmts:          exp
-                {
-                    delete $1;
-                } | simple_stmts | block | conditional | loop;
+stmts:          simple_stmts | block | conditional | loop;
 
-exp:            constant_exp
-                {
-                    $$ = $1;
-                    // cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << " " << $$->isConst << endl;
-                } |
-                method_invocate
-                {
-                    $$ = $1;
-                    // cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
-                } |
+exp:            constant_exp | method_invocate |
                 ID
                 {
                     int p;
@@ -426,6 +415,8 @@ exp:            constant_exp
 
                         entry* temp = new entry();
                         *temp = sTableList[p].entry_[*$1];
+                        if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())   // ID is array name
+                            temp->dType = dataType::NTYPE;
                         $$ = temp;
                         // cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
                         Trace("Reducing to exp from ID\n");
@@ -498,13 +489,47 @@ exp:            constant_exp
                     else 
                         yyerror("no match for 'operator-'");
                 } |
+                ID '[' exp ']'
+                {
+                    if ($3->dType == INT_)
+                    {
+                        int p;
+
+                        if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
+                        {
+                            // copy constructor
+                            // entry temp = sTableList[p].entry_[*$1];
+                            // $$ = &temp;
+                            // cout << "type: " << $$->dType << " val: " << $$->val.iVal << endl;
+                            if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())
+                            {
+                                entry* temp = new entry();
+                                *temp = sTableList[p].entry_[*$1];
+                                $$ = temp;
+                                // cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
+                                Trace("Reducing to exp from ID\n");
+                            }
+                            else
+                                yyerror("invalid for array subscript");
+                        }
+                        else
+                        {
+                            string msg = "'";
+                            msg += *$1 + "' was not declared in this scope";
+                            yyerror(msg);
+                        }
+                    }
+                    else
+                        yyerror("not integer inside []");
+                } |
                 '(' exp ')'
                 {
                     $$ = $2;
                 };
 
     // simple
-simple_stmts:   RETURN
+simple_stmts:   exp |
+                RETURN
                 {
                     // error handle
                     if (sTableList[current_t + whereMethod].lookup(currentMethod, objType::FUNC) == -1)
@@ -738,7 +763,7 @@ num:            REAL
                 };
 
 loop:           WHILE '(' bool_exp ')' stmts |
-                FOR '(' ID '<''-' num TO num ')' stmts;
+                FOR '(' ID ARROW num TO num ')' stmts;
 
     /* function or procedure invocation */
 method_invocate:    ID '(' comma_separate_exp ')'
@@ -820,14 +845,18 @@ int main(int argc, char *argv[])
     table mainTable;
     sTableList.push_back(mainTable);
     current_t = 0;
+    error = 0;
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
         cout << "Parsing error !" << endl;     /* syntax error */
+
+    cout << "total error: " << error << endl << endl;
 }
 
 void yyerror(string msg)
 {
-    cerr << fileName << ":" << linenum - 1 << ": error: ";
+    cerr << fileName << ":" << linenum - 1 << ": error: "; // TODO
     cerr << msg << endl;
+    error += 1;
 }

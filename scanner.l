@@ -67,6 +67,11 @@ real        {plain_real}|{expreal}
 "="             {token(yytext);}
 
     /* Keywords*/
+"<-"    {
+    tokenKeyword(yytext);
+    return ARROW;
+}
+
 boolean {
     tokenKeyword(yytext);
     return BOOLEAN;
