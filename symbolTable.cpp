@@ -81,17 +81,14 @@ entry::entry(const dataType& t, string* name) : dType(t), isConst(false) {
 
 entry& entry::operator=(const entry& e)
 {
-	cout << "debug: calling assign overload" << endl;
-	cout << e.dType << endl;
+	// cout << "debug: calling assign overload" << endl;
 	this->dType = e.dType;
-	cout << "test1.5" << endl;
 	val.iVal = e.val.iVal;
-	
 	val.rVal = e.val.rVal;
 	val.cVal = e.val.cVal;
 	val.sVal = e.val.sVal;
 	val.bVal = e.val.bVal;
-	cout << "test1.51" << endl;
+	isConst = e.isConst;
 	return *this;
 }
 
@@ -286,6 +283,7 @@ const int table::lookup(const string& name, const objType& objT) const {
 }
 
 void table::insert(const string & name, const entry& e) {
+	cout << "debug: calling insert isConst: " << e.isConst << endl;
 	if (e.dType == OBJ_)
 		this->object_[name] = e;
 	else
@@ -318,8 +316,8 @@ void table::update(const string& name, const entry& e, const int& position, cons
 
 void table::dump() const {
 	cout << "entry" << endl;
-	cout << "name\ttype\tvalue" << endl;
-	cout << "---------------------" << endl;
+	cout << "name\ttype\tvalue\tisConst" << endl;
+	cout << "--------------------------------" << endl;
 	for (auto it = this->entry_.begin(); it != this->entry_.end(); it++) {
 		cout << it->first << "\t" << it->second.dType << "\t";
 		switch (it->second.dType)
@@ -342,7 +340,7 @@ void table::dump() const {
 		default:
 			break;
 		}
-		cout << endl;
+		cout << "\t" << it->second.isConst << endl;
 	}
 	cout << endl;
 	

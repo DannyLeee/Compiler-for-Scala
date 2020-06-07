@@ -379,7 +379,7 @@ stmts:          exp
 exp:            constant_exp
                 {
                     $$ = $1;
-                    cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << endl;
+                    cout << "yacc debug (exp): " << $$->dType << " " << $$->val.iVal << " " << $$->isConst << endl;
                 } |
                 method_invocate
                 {
@@ -490,11 +490,22 @@ simple_stmts:   PRINT exp
                 } |
                 ID '=' exp 
                 {
+                    // cout << "yacc debug: current_t= " << current_t << endl;
+                    // for (int i = current_t; i >= 0; i--)
+                    // {
+                    //     cout << "table " << i << endl;
+                    //     sTableList[i].dump();
+                    //     cout << endl;
+                    // }
+
                     int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
                     if (p != -1)
                     {
-                        // assign the value to ID
-                        sTableList[current_t].update(*$1, *$3, 0, false);
+                        if (sTableList[p].entry_[*$1].isConst == false)
+                            // assign the value to ID
+                            sTableList[p].update(*$1, *$3, 0, false);
+                        else
+                            yyerror("assignment of constant variable\n");
                     }
                     else
                         yyerror("varirable name not found\n");
@@ -507,7 +518,7 @@ simple_stmts:   PRINT exp
                         // check [exp] is int or error
                         if ($3->dType == INT_)
                             // assign the value to ID[i]
-                            sTableList[current_t].update(*$1, *$6, $3->val.iVal, true);
+                            sTableList[p].update(*$1, *$6, $3->val.iVal, true);
                         else
                             yyerror("not integer in []\n");
                     }
@@ -631,12 +642,8 @@ bool_exp:       t_f |
                         yyerror("operand type error\n");
                 };
 
-conditional:    IF '(' bool_exp ')' block |
-                IF '(' bool_exp ')' simple_stmts |
-                IF '(' bool_exp ')' block ELSE block |
-                IF '(' bool_exp ')' block ELSE simple_stmts |
-                IF '(' bool_exp ')' simple_stmts ELSE block |
-                IF '(' bool_exp ')' simple_stmts ELSE simple_stmts;
+conditional:    IF '(' bool_exp ')' stmts |
+                IF '(' bool_exp ')' stmts ELSE stmts;
 
     // loop
 num:            REAL
