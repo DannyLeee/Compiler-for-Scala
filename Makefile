@@ -10,7 +10,7 @@ y.tab.cpp: parser.y
 	yacc -dv -o y.tab.cpp parser.y
 
 parser: y.tab.cpp lex.yy.cpp symbolTable.h symbolTable.cpp 
-	g++ -o parser y.tab.cpp symbolTable.cpp -ll -std=c++11
+	g++ -o parser y.tab.cpp symbolTable.cpp -ll -ly -std=c++11
 
 clean:
 	rm lex.yy.* parser y.*

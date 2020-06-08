@@ -78,7 +78,7 @@ int error;
 /* keyword tokens */
 %token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE ARROW
 
-%type <entryPt> constant_exp num exp bool_exp method_invocate t_f
+%type <entryPt> constant_exp num exp method_invocate t_f
 %type <typeVal> type_
 %type <list>    formal_arguments comma_separate_exp
 
@@ -113,7 +113,7 @@ constant_exp:   _CHAR_
                 {
                     entry* temp = new entry(STR_, $1, false);
                     $$ = temp;
-                } | num | bool_exp;
+                } | num | t_f;
 
 t_f:            TRUE
                 {
@@ -468,13 +468,6 @@ exp:            constant_exp | method_invocate |
                     else 
                         yyerror("no match for 'operator/'");
                 } |
-                exp '%' exp
-                {
-                    if ($1->dType == INT_ && $3->dType == INT_)
-                        *$$ = *$1 % *$3;
-                    else 
-                        yyerror("no match for 'operator%'");
-                } |
                 '-' exp %prec UMINUS
                 {
                     cout << "yacc debug(-): type: " << $2->dType << endl;
@@ -488,6 +481,83 @@ exp:            constant_exp | method_invocate |
                     }
                     else 
                         yyerror("no match for 'operator-'");
+                } |
+                '!' exp 
+                {
+                    if ($2->dType == BOOLEAN_)
+                        *$$ = !(*$2);
+                    else
+                        yyerror("no match for 'operator!'");
+                } |
+                exp LES exp 
+                {
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                        *$$ = *$1 < *$3;
+                    else 
+                        yyerror("no match for 'operator<'");
+                } |
+                exp GRT exp 
+                {
+                    // cout << "yacc debug: current_t= " << current_t << endl;
+                    // for (int i = current_t; i >= 0; i--)
+                    // {
+                    //     cout << "table " << i << endl;
+                    //     sTableList[i].dump();
+                    //     cout << endl;
+                    // }
+
+                    // cout <<"yacc debug (>): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
+
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                        *$$ = *$1 > *$3;
+                    else 
+                        yyerror("no match for 'operator>'");
+                } |
+                exp LEQ exp 
+                {
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                        *$$ = *$1 <= *$3;
+                    else 
+                        yyerror("no match for 'operator<='");
+                } |
+                exp EQU exp 
+                {
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                        *$$ = *$1 == *$3;
+                    else if ($1->dType == $3->dType)
+                        *$$ = *$1 == *$3;
+                    else 
+                        yyerror("no match for 'operator=='");
+                } |
+                exp GEQ exp 
+                {
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                        *$$ = *$1 >= *$3;
+                    else 
+                        yyerror("no match for 'operator>='");
+                } |
+                exp NEQ exp 
+                {
+                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                        *$$ = *$1 != *$3;
+                    else if ($1->dType == $3->dType)
+                        *$$ = *$1 != *$3;
+                    else 
+                        yyerror("no match for 'operator!='");
+                } |
+                exp AND exp 
+                {
+                    if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
+                        *$$ = *$1 && *$3;
+                    else
+                        yyerror("no match for 'operator&&'");
+                } |
+                exp OR exp
+                {
+                    if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
+                        *$$ = *$1 || *$3;
+                    else
+                        yyerror("no match for 'operator||'");
                 } |
                 ID '[' exp ']'
                 {
@@ -528,8 +598,7 @@ exp:            constant_exp | method_invocate |
                 };
 
     // simple
-simple_stmts:   exp |
-                RETURN
+simple_stmts:   RETURN
                 {
                     // error handle
                     if (sTableList[current_t + whereMethod].lookup(currentMethod, objType::FUNC) == -1)
@@ -667,87 +736,13 @@ block:          '{'
                 };
 
     // conditional
-bool_exp:       t_f |
-                '!' exp 
-                {
-                    if ($2->dType == BOOLEAN_)
-                        *$$ = !(*$2);
-                    else
-                        yyerror("no match for 'operator!'");
-                } |
-                exp LES exp 
-                {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 < *$3;
-                    else 
-                        yyerror("no match for 'operator<'");
-                } |
-                exp GRT exp 
-                {
-                    // cout << "yacc debug: current_t= " << current_t << endl;
-                    // for (int i = current_t; i >= 0; i--)
-                    // {
-                    //     cout << "table " << i << endl;
-                    //     sTableList[i].dump();
-                    //     cout << endl;
-                    // }
+else_:           ELSE stmts | ;
 
-                    // cout <<"yacc debug (>): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
-
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 > *$3;
-                    else 
-                        yyerror("no match for 'operator>'");
-                } |
-                exp LEQ exp 
+conditional:    IF '(' exp
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 <= *$3;
-                    else 
-                        yyerror("no match for 'operator<='");
-                } |
-                exp EQU exp 
-                {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 == *$3;
-                    else if ($1->dType == $3->dType)
-                        *$$ = *$1 == *$3;
-                    else 
-                        yyerror("no match for 'operator=='");
-                } |
-                exp GEQ exp 
-                {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 >= *$3;
-                    else 
-                        yyerror("no match for 'operator>='");
-                } |
-                exp NEQ exp 
-                {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 != *$3;
-                    else if ($1->dType == $3->dType)
-                        *$$ = *$1 != *$3;
-                    else 
-                        yyerror("no match for 'operator!='");
-                } |
-                exp AND exp 
-                {
-                    if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
-                        *$$ = *$1 && *$3;
-                    else
-                        yyerror("no match for 'operator&&'");
-                } |
-                exp OR exp
-                {
-                    if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
-                        *$$ = *$1 || *$3;
-                    else
-                        yyerror("no match for 'operator||'");
-                };
-
-conditional:    IF '(' bool_exp ')' stmts |
-                IF '(' bool_exp ')' stmts ELSE stmts;
+                    if ($3->dType != BOOLEAN_)
+                        yyerror("tyep error - if statement needs boolean expression in ()");
+                } ')' stmts else_;
 
     // loop
 num:            REAL
@@ -762,7 +757,11 @@ num:            REAL
                     // cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
                 };
 
-loop:           WHILE '(' bool_exp ')' stmts |
+loop:           WHILE '(' exp ')'
+                {
+                    if ($3->dType != BOOLEAN_)
+                        yyerror("tyep error - while statement needs boolean expression in ()");
+                } stmts |
                 FOR '(' ID ARROW num TO num ')' stmts;
 
     /* function or procedure invocation */
