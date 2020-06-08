@@ -57,7 +57,7 @@ int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter
 
 vector <table> sTableList;
 int current_t;
-int m_count;
+int m_count = 0;
 string fileName;
 string currentMethod;
 int whereMethod;
@@ -97,7 +97,7 @@ int error;
 %nonassoc UMINUS
 
 %%
-program:    obj_declar program | 
+program:    obj_declar 
             {
                 Trace("Reducing to program\n");
             };
@@ -294,7 +294,7 @@ obj_declar:     OBJECT ID
                     //     cout << endl;
                     // }
                     if (m_count < 1)
-                        yyerror("object needs atleast one method inside");
+                        yyerror("object needs mian() method inside");
 
                     // delete the table in block
                     sTableList.pop_back();
@@ -394,8 +394,9 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
-                    m_count += 1;
                     whereMethod += 1;
+                    if (*$2 == "main")
+                        m_count += 1;
                 };
 
     /* Statements */
@@ -855,7 +856,7 @@ int main(int argc, char *argv[])
 
 void yyerror(string msg)
 {
-    cerr << fileName << ":" << linenum - 1 << ": error: "; // TODO
+    cerr << fileName << ":" << linenum  << ": error: "; // TODO
     cerr << msg << endl;
     error += 1;
 }
