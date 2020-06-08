@@ -4,11 +4,11 @@
 #include "y.tab.hpp"
 #define LIST     strcat(buf,yytext)
 #define TOUPPER(s, temp) for (int i = 0; i < strlen(s); i++) {temp[i] = toupper(s[i]); temp[i+1] = 0;} 
-#define token(t) {LIST; printf("<'%s'>\n",t); return *t;}
-#define tokenKeyword(t) {LIST; printf("<%s>\n",t);}
-#define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,atoi(i)); yylval.intVal = atoi(i);}
-#define tokenFloat(t,f) {LIST; printf("<%s: %f>\n",t,atof(f)); yylval.realVal = atof(f);}
-#define tokenString(t,s) {LIST; printf("<%s%s>\n",t,s); yylval.strVal = new string(s);}
+#define token(t) {LIST; /*printf("<'%s'>\n",t);*/ return *t;}
+#define tokenKeyword(t) {LIST; /*printf("<%s>\n",t);*/}
+#define tokenInteger(t,i) {LIST; /*printf("<%s: %d>\n",t,atoi(i));*/ yylval.intVal = atoi(i);}
+#define tokenFloat(t,f) {LIST; /*printf("<%s: %f>\n",t,atof(f));*/ yylval.realVal = atof(f);}
+#define tokenString(t,s) {LIST; /*printf("<%s%s>\n",t,s);*/ yylval.strVal = new string(s);}
 
 #define MAX_LINE_LENG 256
 
@@ -239,7 +239,7 @@ while   {
 \'.\'       {
     string temp = yytext;
     LIST;
-    printf("<char %c>\n", temp[1]);
+    // printf("<char %c>\n", temp[1]);
     yylval.cVal = temp[1];
     return _CHAR_;
 }
@@ -289,7 +289,7 @@ while   {
 
 <COMMENT>\n {
     LIST;
-    printf("%d: %s", linenum++, buf);
+    // printf("%d: %s", linenum++, buf);
     memset(buf, 0, MAX_LINE_LENG);
     BEGIN(INITIAL);
 }
@@ -307,14 +307,14 @@ while   {
 }
 <C_COMMENT>\n   {
     LIST;
-    printf("%d: %s", linenum++, buf);
+    // printf("%d: %s", linenum++, buf);
     memset(buf, 0, MAX_LINE_LENG);
 }
 <C_COMMENT>.    {LIST;}
 
 \n      {
             LIST;
-            printf("%d: %s", linenum++, buf);
+            // printf("%d: %s", linenum++, buf);
             memset(buf, 0, MAX_LINE_LENG);
         }
 
@@ -338,6 +338,6 @@ while   {
 // }
 
 int yywrap() {
-    printf("%d: %s\n", linenum, buf);
+    // printf("%d: %s\n", linenum, buf);
     return 1;
 }

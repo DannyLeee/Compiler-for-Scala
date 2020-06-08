@@ -24,7 +24,6 @@
 // 		val.iVal = 0;
 // 		break;
 // 	}
-// 	cout << "debug: calling copy constructor" << endl;
 // }
 
 entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t), isConst(isCon) {
@@ -81,7 +80,6 @@ entry::entry(const dataType& t, string* name) : dType(t), isConst(false) {
 
 entry& entry::operator=(const entry& e)
 {
-	// cout << "debug: calling assign overload" << endl;
 	this->dType = e.dType;
 	val.iVal = e.val.iVal;
 	val.rVal = e.val.rVal;
@@ -133,7 +131,7 @@ entry entry::operator/(const entry& e) {
 	else if (this->dType == INT_ && e.dType == REAL_)
 		return entry(REAL_, this->val.iVal / e.val.rVal, false);
 	else
-		return entry(REAL_, this->val.iVal / e.val.iVal, false);
+		return entry(INT_, this->val.iVal / e.val.iVal, false);
 }
 
 entry entry::operator%(const entry& e) {
@@ -249,7 +247,6 @@ entry entry::operator!() {
 }
 
 entry entry::operator-() {
-	// cout << "debug: calling operator minus" << endl;
 	if (this->dType == INT_)
 	{
 		entry temp(INT_, this->val.iVal, false);
@@ -282,7 +279,6 @@ const int table::lookup(const string& name, const objType& objT) const {
 }
 
 void table::insert(const string & name, const entry& e) {
-	// cout << "debug: calling insert isConst: " << e.isConst << endl;
 	if (e.dType == OBJ_)
 		this->object_[name] = e;
 	else

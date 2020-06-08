@@ -2,58 +2,12 @@
 #include <stdlib.h>
 #include "symbolTable.h"
 #include "lex.yy.cpp"
-#define Trace(t)        printf(t)
 
 void yyerror(string msg);
-
-int listLookup(const string& name, const vector <entry>& l)
-{
-    for (int i = 0; i < l.size(); i++)
-    {
-        if (name == *l[i].val.sVal)
-            return 1;
-    }
-    return -1;
-}
-
-int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const objType& objT)
-{
-    // cout << "yacc debug: current_t= " << cur << endl;
-    // for (int i = cur; i >= 0; i--)
-    // {
-    //     cout << "table " << i << endl;
-    //     tableList[i].dump();
-    //     cout << endl;
-    // }
-    int p = cur;
-    // check all previous table
-    while (p >= 0)
-    {
-        // lookup the symbol table and return variable's name
-        if (tableList[p].lookup(name, objT) != -1)
-        {
-            // cout << "yacc debug: find " << name << " at table" << p << endl;
-            return p;
-        }
-        p -= 1;
-    }
-    return -1;
-}
-
-int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter)
-{
-    // cout << "yacc debug: " << argument.size() << " " << parameter.size() << endl;
-    if (argument.size() > parameter.size() + 1)
-        return -2;
-    else if (argument.size() < parameter.size() + 1)
-        return -3;
-    for (int i = 0; i < parameter.size(); i++)
-    {
-        if (argument[i + 1].dType != parameter[i].dType)
-            return -1;
-    }
-    return 1;
-}
+int listLookup(const string& name, const vector <entry>& l);
+int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const objType& objT);
+int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter);
+void dump();
 
 vector <table> sTableList;
 int current_t;
@@ -97,10 +51,7 @@ int error;
 %nonassoc UMINUS
 
 %%
-program:    obj_declar 
-            {
-                Trace("Reducing to program\n");
-            };
+program:    obj_declar;
 
     /* Data Types and Declarations */
     // any type of the variable expression
@@ -158,14 +109,14 @@ const_declar:   VAL ID type_ '=' exp
                         // insert symbol table
                         if ($3 == NTYPE)
                         {
-                            sTableList[current_t].insert(*$2, *$5);
-                            // cout << "yacc debug: insert " << *$2 << " at table " << current_t << endl;
+                            entry temp($5->dType, $5->val, true);
+                            sTableList[current_t].insert(*$2, temp);
                         }
                         else
                         {
                             if ($3 == $5->dType)
                             {
-                                Trace("Reducing to constant declar\n");
+                                // Trace("Reducing to constant declar\n");
                                 entry temp($5->dType, $5->val, true);
                                 sTableList[current_t].insert(*$2, temp);
                             }
@@ -219,7 +170,7 @@ var_declar:     VAR ID type_
                         {
                             if ($3 == $5->dType)
                             {
-                                Trace("Reducing to constant declar\n");
+                                // Trace("Reducing to constant declar\n");
                                 sTableList[current_t].insert(*$2, *$5);
                             }
                             else
@@ -238,6 +189,7 @@ var_declar:     VAR ID type_
 
 array_declar:   VAR ID type_ '[' exp ']'
                 {
+                    linenum += 1;
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
@@ -247,9 +199,7 @@ array_declar:   VAR ID type_ '[' exp ']'
                         else if ($5->dType != INT_)
                             yyerror("not integer inside []");
                         else
-                        {
                             sTableList[current_t].insert(*$2, $3, $5->val.iVal);
-                        }
                     }
                     else
                     {
@@ -257,6 +207,7 @@ array_declar:   VAR ID type_ '[' exp ']'
                         msg += *$2 + "'";
                         yyerror(msg);
                     }
+                    linenum -= 1;
                 };
 
     /* Program Units */
@@ -266,18 +217,20 @@ obj_content:    method_declar | data_declar | method_declar obj_content | data_d
 obj_declar:     OBJECT ID
                 {
                     // push ID into table
-                    if (sTableList[current_t].lookup(*$2, objType::OBJ) == -1)
-                    {
+                    // if (sTableList[current_t].lookup(*$2, objType::OBJ) == -1)
+                    // {
                         entry temp(OBJ_);
                         sTableList[current_t].insert(*$2, temp);
                         m_count = 0;
-                    }
-                    else
-                    {
-                        string msg = "redefine object '";
-                        msg += *$2 + "'";
-                        yyerror(msg);
-                    }
+                    // }
+                    // else
+                    // {
+                    //     string msg = "redefine object '";
+                    //     msg += *$2 + "'";
+                    //     linenum += 1;
+                    //     yyerror(msg);
+                    //     linenum -= 1;
+                    // }
                 } '{'
                 {
                     // open a new symbol table
@@ -286,15 +239,12 @@ obj_declar:     OBJECT ID
                     current_t += 1;
                 } obj_content '}'
                 {
-                    // cout << "yacc debug: current_t= " << current_t << endl;
-                    // for (int i = current_t; i >= 0; i--)
-                    // {
-                    //     cout << "table " << i << endl;
-                    //     sTableList[i].dump();
-                    //     cout << endl;
-                    // }
                     if (m_count < 1)
+                    {
+                        linenum += 1;
                         yyerror("object needs mian() method inside");
+                        linenum -= 1;
+                    }
 
                     // delete the table in block
                     sTableList.pop_back();
@@ -304,8 +254,7 @@ obj_declar:     OBJECT ID
 
 formal_arguments:   ID type_
                     {
-                        Trace("Reducing to formal argument\n");
-                        // cout <<"yacc debug: " << "name: " << *$1 << " type: " << $2 << endl;
+                        // Trace("Reducing to formal argument\n");
                         // check type_ not NTYPE
                         if ($2 != NTYPE)
                         {
@@ -316,17 +265,21 @@ formal_arguments:   ID type_
                             $$ = arguList;
                         }
                         else
+                        {
+                            linenum += 1;
                             yyerror("formal argument needs to define type");
+                            linenum -= 1;
+                        }
                     } |
                     formal_arguments ',' ID type_
                     {
+                        linenum += 1;
                         // check type_ not NTYPE
                         if ($4 != NTYPE)
                         {
                             // check the list hasn't have argument name ID
                             if (listLookup(*$3, *$1) == -1)
                             {
-                                // cout << "yacc debug: " << "name: " << *$3 << " type: " << $4 << endl;
                                 // push back the new argument to the vector
                                 entry temp($4, $3);
                                 $1->push_back(temp);
@@ -341,6 +294,7 @@ formal_arguments:   ID type_
                         }
                         else
                             yyerror("formal argument needs to define type");
+                        linenum -= 1;
                     } |
                     {
                         // return empty list
@@ -358,17 +312,8 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         // push ID into table
                         // and bind the argument list to ID
                         sTableList[current_t].insert(*$2, $6, *$4);
-                        // cout << "yacc debug: insert " << *$2 << " at table" << current_t << endl;
                         currentMethod = *$2;
                         whereMethod = 0;
-
-                        // cout << "yacc debug: current_t= " << current_t << endl;
-                        // for (int i = current_t; i >= 0; i--)
-                        // {
-                        //     cout << "table " << i << endl;
-                        //     sTableList[i].dump();
-                        //     cout << endl;
-                        // }
                     }
                     else
                     {
@@ -409,18 +354,11 @@ exp:            constant_exp | method_invocate |
 
                     if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
                     {
-                        // copy constructor
-                        // entry temp = sTableList[p].entry_[*$1];
-                        // $$ = &temp;
-                        // cout << "type: " << $$->dType << " val: " << $$->val.iVal << endl;
-
                         entry* temp = new entry();
                         *temp = sTableList[p].entry_[*$1];
                         if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())   // ID is array name
                             temp->dType = dataType::NTYPE;
                         $$ = temp;
-                        // cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
-                        Trace("Reducing to exp from ID\n");
                     }
                     else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
                     {
@@ -434,12 +372,13 @@ exp:            constant_exp | method_invocate |
                     {
                         string msg = "'";
                         msg += *$1 + "' was not declared in this scope";
+                        linenum += 1;
                         yyerror(msg);
+                        linenum -= 1;
                     }
                 } |
                 exp '+' exp
                 {
-                    // cout <<"yacc debug (+): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 + *$3;
                     else 
@@ -448,10 +387,7 @@ exp:            constant_exp | method_invocate |
                 exp '-' exp
                 {
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                    {
                         *$$ = *$1 - *$3;
-                        Trace("Reducing to exp from sub\n");
-                    }
                     else 
                         yyerror("no match for 'operator-'");
                 } |
@@ -471,14 +407,13 @@ exp:            constant_exp | method_invocate |
                 } |
                 '-' exp %prec UMINUS
                 {
-                    cout << "yacc debug(-): type: " << $2->dType << endl;
                     if ($2->dType == INT_ || $2->dType == REAL_)
                     {
                         // *$$ = -(*$2);    //don't know why segment fault int assign overload
                         entry* temp = new entry();
                         temp->dType = $2->dType;
                         $$ = temp;
-                        Trace("Reducing to exp from minus\n");
+                        // Trace("Reducing to exp from minus\n");
                     }
                     else 
                         yyerror("no match for 'operator-'");
@@ -499,16 +434,6 @@ exp:            constant_exp | method_invocate |
                 } |
                 exp GRT exp 
                 {
-                    // cout << "yacc debug: current_t= " << current_t << endl;
-                    // for (int i = current_t; i >= 0; i--)
-                    // {
-                    //     cout << "table " << i << endl;
-                    //     sTableList[i].dump();
-                    //     cout << endl;
-                    // }
-
-                    // cout <<"yacc debug (>): " << "type1: " << $1->dType << " val1: " << $1->val.iVal << " type2: " << $3->dType << " val2: " << $3->val.iVal << endl;
-
                     if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
                         *$$ = *$1 > *$3;
                     else 
@@ -562,6 +487,7 @@ exp:            constant_exp | method_invocate |
                 } |
                 ID '[' exp ']'
                 {
+                    linenum += 1;
                     if ($3->dType == INT_)
                     {
                         int p;
@@ -569,16 +495,11 @@ exp:            constant_exp | method_invocate |
                         if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
                         {
                             // copy constructor
-                            // entry temp = sTableList[p].entry_[*$1];
-                            // $$ = &temp;
-                            // cout << "type: " << $$->dType << " val: " << $$->val.iVal << endl;
                             if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())
                             {
                                 entry* temp = new entry();
                                 *temp = sTableList[p].entry_[*$1];
                                 $$ = temp;
-                                // cout << "yacc debug(exp): type: " << $$->dType << " val: " << $$->val.iVal << endl;
-                                Trace("Reducing to exp from ID\n");
                             }
                             else
                                 yyerror("invalid for array subscript");
@@ -586,12 +507,13 @@ exp:            constant_exp | method_invocate |
                         else
                         {
                             string msg = "'";
-                            msg += *$1 + "' was not declared in this scope";
+                            msg += *$1 + "' was not declared in this scope(ID[exp])";
                             yyerror(msg);
                         }
                     }
                     else
                         yyerror("not integer inside []");
+                    linenum -= 1;
                 } |
                 '(' exp ')'
                 {
@@ -624,16 +546,12 @@ simple_stmts:   RETURN
                         cerr << "symbol table error" << endl;
                         exit(-1);
                     }
-                    cout << "yacc debug(return): type: " << $2->dType << endl;
                     if ($2->dType == sTableList[current_t + whereMethod].func_[currentMethod][0].dType)
                         sTableList[current_t + whereMethod].func_[currentMethod][0] = *$2;  // bind the return value
                     else
                         yyerror("return type error - invalid conversion");
                 } |
-                PRINT exp
-                {
-                    Trace("Reducing to simple stmt from print\n");
-                } | PRINTLN exp |
+                PRINT exp | PRINTLN exp |
                 READ ID
                 {
                     int p = isVarOrMethodName(*$2, sTableList, current_t, objType::VAR_);
@@ -643,38 +561,38 @@ simple_stmts:   RETURN
                     }
                     else
                     {
+                        linenum += 1;
                         string msg = "'";
                         msg += *$2 + "' was not declared in this scope";
                         yyerror(msg);
+                        linenum -= 1;
                     }
                 } |
                 ID '=' exp 
                 {
-                    // cout << "yacc debug: current_t= " << current_t << endl;
-                    // for (int i = current_t; i >= 0; i--)
-                    // {
-                    //     cout << "table " << i << endl;
-                    //     sTableList[i].dump();
-                    //     cout << endl;
-                    // }
-
                     int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
                     if (p != -1)
                     {
-                        if (sTableList[p].entry_[*$1].isConst == false)
-                            // assign the value to ID
-                            sTableList[p].update(*$1, *$3, 0, false);
-                        else
+                        if (sTableList[p].entry_[*$1].dType == $3->dType)
                         {
-                            string msg = "assignment of read-only variable '";
-                            msg += *$1 + "'";
-                            yyerror(msg);
+                            
+                            if (sTableList[p].entry_[*$1].isConst == false)
+                                // assign the value to ID
+                                sTableList[p].update(*$1, *$3, 0, false);
+                            else
+                            {
+                                string msg = "assignment of read-only variable '";
+                                msg += *$1 + "'";
+                                yyerror(msg);
+                            }
                         }
+                        else
+                            yyerror("type error(ID=exp) - invalid conversion");
                     }
                     else
                     {
                         string msg = "'";
-                        msg += *$1 + "' was not declared in this scope";
+                        msg += *$1 + "' was not declared in this scope(ID=exp)";
                         yyerror(msg);
                     }
                 } |
@@ -701,8 +619,7 @@ simple_stmts:   RETURN
     // function invocation
 comma_separate_exp: exp
                     {
-                        Trace("Reducing to comma separeate exp\n");
-                        // cout << "yacc debug: " << "type: " << $1->dType << endl;
+                        // Trace("Reducing to comma separeate exp\n");
                         // new a vector<entry> to store whole formal parameter
                         vector<entry>* parameterList = new vector<entry>;
                         parameterList->push_back(*$1);
@@ -742,7 +659,11 @@ else_:           ELSE stmts | ;
 conditional:    IF '(' exp
                 {
                     if ($3->dType != BOOLEAN_)
+                    {
+                        linenum += 1;
                         yyerror("tyep error - if statement needs boolean expression in ()");
+                        linenum -= 1;
+                    }
                 } ')' stmts else_;
 
     // loop
@@ -755,15 +676,44 @@ num:            REAL
                 {
                     entry* temp = new entry(INT_, $1, false);
                     $$ = temp;
-                    // cout << "yacc debug (num): " << $$->dType << " " << $$->val.iVal << endl;
                 };
 
 loop:           WHILE '(' exp ')'
                 {
                     if ($3->dType != BOOLEAN_)
+                    {
+                        linenum += 1;
                         yyerror("tyep error - while statement needs boolean expression in ()");
+                        linenum -= 1;
+                    }
                 } stmts |
-                FOR '(' ID ARROW num TO num ')' stmts;
+                FOR '(' ID
+                {
+                    linenum += 1;
+                    int p;
+                    if ((p = isVarOrMethodName(*$3, sTableList, current_t, objType::VAR_)) != -1)
+                    {
+                        entry* temp = new entry();
+                        *temp = sTableList[p].entry_[*$3];
+                        if (sTableList[p].array_.find(*$3) != sTableList[p].array_.end())   // ID is array name
+                            temp->dType = dataType::NTYPE;
+                        if (temp->dType != INT_)
+                            yyerror("tyep error - invalid conversion");
+                        else if (temp->isConst == true)
+                        {
+                            string msg = "assignment of read-only variable '";
+                            msg += *$3 + "'";
+                            yyerror(msg);
+                        }
+                    }
+                    else
+                    {
+                        string msg = "'";
+                        msg += *$3 + "' was not declared in this scope";
+                        yyerror(msg);
+                    }
+                    linenum -= 1;
+                } ARROW num TO num ')' stmts;
 
     /* function or procedure invocation */
 method_invocate:    ID '(' comma_separate_exp ')'
@@ -780,14 +730,6 @@ method_invocate:    ID '(' comma_separate_exp ')'
                         {
                             // check parameters' data type
                             int Flag = parameterCheck(sTableList[p].func_[*$1], *$3);
-                            // cout << "yacc debug: current_t= " << current_t << " p= " << p << endl;
-                            // for (int i = p; i >= 0; i--)
-                            // {
-                            //     cout << "table " << i << endl;
-                            //     sTableList[i].dump();
-                            //     cout << endl;
-                            // }
-
                             string msg;
                             switch (Flag)
                             {
@@ -802,7 +744,6 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                     entry* temp = new entry();
                                     *temp = sTableList[p].func_[*$1][0];
                                     $$ = temp;  // function will return the return value 
-                                    // cout << "yacc debug: type: " << $$->dType << " val: " << $$->val.iVal << endl;
                                     // P3TODO:
                                 }
                                 break;
@@ -827,7 +768,6 @@ method_invocate:    ID '(' comma_separate_exp ')'
                             msg += *$1 + "' was not declared in this scope";
                             yyerror(msg);
                         }
-                        
                     };
 
 %%
@@ -849,14 +789,65 @@ int main(int argc, char *argv[])
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
+    {
+        linenum += 1;
         cout << "Parsing error !" << endl;     /* syntax error */
+    }
 
     cout << "total error: " << error << endl << endl;
 }
 
 void yyerror(string msg)
 {
-    cerr << fileName << ":" << linenum  << ": error: "; // TODO
+    cerr << fileName << ":" << linenum - 1 << ": error: "; // TODO
     cerr << msg << endl;
     error += 1;
+}
+
+int listLookup(const string& name, const vector <entry>& l)
+{
+    for (int i = 0; i < l.size(); i++)
+    {
+        if (name == *l[i].val.sVal)
+            return 1;
+    }
+    return -1;
+}
+
+int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const objType& objT)
+{
+    int p = cur;
+    // check all previous table
+    while (p >= 0)
+    {
+        // lookup the symbol table and return variable's name
+        if (tableList[p].lookup(name, objT) != -1)
+            return p;
+        p -= 1;
+    }
+    return -1;
+}
+
+int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter)
+{
+    if (argument.size() > parameter.size() + 1)
+        return -2;
+    else if (argument.size() < parameter.size() + 1)
+        return -3;
+    for (int i = 0; i < parameter.size(); i++)
+    {
+        if (argument[i + 1].dType != parameter[i].dType)
+            return -1;
+    }
+    return 1;
+}
+
+void dump()
+{
+    for (int i = current_t; i >= 0; i--)
+    {
+        cout << "table " << i << endl;
+        sTableList[i].dump();
+        cout << endl;
+    }
 }
