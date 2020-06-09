@@ -189,7 +189,7 @@ var_declar:     VAR ID type_
 
 array_declar:   VAR ID type_ '[' exp ']'
                 {
-                    // linenum += 1;
+                    linenum += 1;
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
@@ -207,7 +207,7 @@ array_declar:   VAR ID type_ '[' exp ']'
                         msg += *$2 + "'";
                         yyerror(msg);
                     }
-                    // linenum -= 1;
+                    linenum -= 1;
                 };
 
     /* Program Units */
@@ -241,9 +241,9 @@ obj_declar:     OBJECT ID
                 {
                     if (m_count < 1)
                     {
-                        // linenum += 1;
+                        linenum += 1;
                         yyerror("object needs mian() method inside");
-                        // linenum -= 1;
+                        linenum -= 1;
                     }
 
                     // delete the table in block
@@ -266,14 +266,14 @@ formal_arguments:   ID type_
                         }
                         else
                         {
-                            // linenum += 1;
+                            linenum += 1;
                             yyerror("formal argument needs to define type");
-                            // linenum -= 1;
+                            linenum -= 1;
                         }
                     } |
                     formal_arguments ',' ID type_
                     {
-                        // linenum += 1;
+                        linenum += 1;
                         // check type_ not NTYPE
                         if ($4 != NTYPE)
                         {
@@ -294,7 +294,7 @@ formal_arguments:   ID type_
                         }
                         else
                             yyerror("formal argument needs to define type");
-                        // linenum -= 1;
+                        linenum -= 1;
                     } |
                     {
                         // return empty list
@@ -372,9 +372,9 @@ exp:            constant_exp | method_invocate |
                     {
                         string msg = "'";
                         msg += *$1 + "' was not declared in this scope";
-                        // linenum += 1;
+                        linenum += 1;
                         yyerror(msg);
-                        // linenum -= 1;
+                        linenum -= 1;
                     }
                 } |
                 exp '+' exp
@@ -487,7 +487,7 @@ exp:            constant_exp | method_invocate |
                 } |
                 ID '[' exp ']'
                 {
-                    // linenum += 1;
+                    linenum += 1;
                     if ($3->dType == INT_)
                     {
                         int p;
@@ -513,7 +513,7 @@ exp:            constant_exp | method_invocate |
                     }
                     else
                         yyerror("not integer inside []");
-                    // linenum -= 1;
+                    linenum -= 1;
                 } |
                 '(' exp ')'
                 {
@@ -521,7 +521,7 @@ exp:            constant_exp | method_invocate |
                 };
 
     // simple
-simple_stmts:   exp | RETURN
+simple_stmts:   RETURN
                 {
                     // error handle
                     if (sTableList[current_t + whereMethod].lookup(currentMethod, objType::FUNC) == -1)
@@ -561,11 +561,11 @@ simple_stmts:   exp | RETURN
                     }
                     else
                     {
-                        // linenum += 1;
+                        linenum += 1;
                         string msg = "'";
                         msg += *$2 + "' was not declared in this scope";
                         yyerror(msg);
-                        // linenum -= 1;
+                        linenum -= 1;
                     }
                 } |
                 ID '=' exp 
@@ -660,9 +660,9 @@ conditional:    IF '(' exp
                 {
                     if ($3->dType != BOOLEAN_)
                     {
-                        // linenum += 1;
+                        linenum += 1;
                         yyerror("tyep error - if statement needs boolean expression in ()");
-                        // linenum -= 1;
+                        linenum -= 1;
                     }
                 } ')' stmts else_;
 
@@ -682,14 +682,14 @@ loop:           WHILE '(' exp ')'
                 {
                     if ($3->dType != BOOLEAN_)
                     {
-                        // linenum += 1;
+                        linenum += 1;
                         yyerror("tyep error - while statement needs boolean expression in ()");
-                        // linenum -= 1;
+                        linenum -= 1;
                     }
                 } stmts |
                 FOR '(' ID
                 {
-                    // linenum += 1;
+                    linenum += 1;
                     int p;
                     if ((p = isVarOrMethodName(*$3, sTableList, current_t, objType::VAR_)) != -1)
                     {
@@ -712,7 +712,7 @@ loop:           WHILE '(' exp ')'
                         msg += *$3 + "' was not declared in this scope";
                         yyerror(msg);
                     }
-                    // linenum -= 1;
+                    linenum -= 1;
                 } ARROW num TO num ')' stmts;
 
     /* function or procedure invocation */
@@ -790,7 +790,7 @@ int main(int argc, char *argv[])
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
     {
-        // linenum += 1;
+        linenum += 1;
         cout << "Parsing error !" << endl;     /* syntax error */
     }
 
@@ -799,7 +799,7 @@ int main(int argc, char *argv[])
 
 void yyerror(string msg)
 {
-    cerr << fileName << ":" << linenum << ": error: "; // TODO
+    cerr << fileName << ":" << linenum - 1 << ": error: "; // TODO
     cerr << msg << endl;
     error += 1;
 }

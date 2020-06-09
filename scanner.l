@@ -290,7 +290,6 @@ while   {
 <COMMENT>\n {
     LIST;
     // printf("%d: %s", linenum++, buf);
-    linenum += 1;
     memset(buf, 0, MAX_LINE_LENG);
     BEGIN(INITIAL);
 }
@@ -309,7 +308,6 @@ while   {
 <C_COMMENT>\n   {
     LIST;
     // printf("%d: %s", linenum++, buf);
-    linenum += 1;
     memset(buf, 0, MAX_LINE_LENG);
 }
 <C_COMMENT>.    {LIST;}
@@ -318,7 +316,6 @@ while   {
             LIST;
             // printf("%d: %s", linenum++, buf);
             memset(buf, 0, MAX_LINE_LENG);
-            linenum += 1;
         }
 
 [ \t]*  {LIST;}
