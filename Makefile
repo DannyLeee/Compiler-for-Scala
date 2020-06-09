@@ -1,10 +1,7 @@
-all: scanner parser
+all: parser
 
 lex.yy.cpp: scanner.l
 	lex -o lex.yy.cpp scanner.l
-
-scanner: lex.yy.cpp symbolTable.cpp
-	g++ -o scanner -O lex.yy.c symbolTable.cpp -ll
 
 y.tab.cpp: parser.y
 	yacc -dv -o y.tab.cpp parser.y
