@@ -28,7 +28,12 @@ struct entry {
 	}val;
 	bool isConst;
 	
-	entry() {}	// for variable declaration (hasn't define type)
+	// entry sequential num
+	// global: -1
+	// local: 0, 1, 2, ...
+	int eNo;
+	
+	entry() {dType = INT_; eNo = -1;}	// for variable declaration (hasn't define type)
 	// entry(const entry& e);	// copy constructor
 	entry(const dataType& t, const union V& v, const bool &isCon); // for constant exp
 	entry(const dataType& t);	// for variable declaration (has define type)

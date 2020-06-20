@@ -26,7 +26,7 @@
 // 	}
 // }
 
-entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t), isConst(isCon) {
+entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t), isConst(isCon), eNo(-2) {
 	switch (t)
 	{
 	case INT_:
@@ -50,7 +50,7 @@ entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t),
 	}
 }
 
-entry::entry(const dataType& t) : dType(t), isConst(false) {
+entry::entry(const dataType& t) : dType(t), isConst(false), eNo(-2) {
 	switch (t)
 	{
 	case INT_:
@@ -74,7 +74,7 @@ entry::entry(const dataType& t) : dType(t), isConst(false) {
 	}
 }
 
-entry::entry(const dataType& t, string* name) : dType(t), isConst(false) {
+entry::entry(const dataType& t, string* name) : dType(t), isConst(false), eNo(-2) {
 	val.sVal = name;
 }
 
@@ -311,8 +311,8 @@ void table::update(const string& name, const entry& e, const int& position, cons
 
 void table::dump() const {
 	cout << "entry" << endl;
-	cout << "name\ttype\tvalue\tisConst" << endl;
-	cout << "--------------------------------" << endl;
+	cout << "name\ttype\tvalue\tisConst\teNO" << endl;
+	cout << "---------------------------------------" << endl;
 	for (auto it = this->entry_.begin(); it != this->entry_.end(); it++) {
 		cout << it->first << "\t" << it->second.dType << "\t";
 		switch (it->second.dType)
@@ -335,19 +335,11 @@ void table::dump() const {
 		default:
 			break;
 		}
-		cout << "\t" << it->second.isConst << endl;
-	}
-	cout << endl;
-	
-	cout << "array" << endl;
-	cout << "name\ttype\tsize" << endl;
-	cout << "--------------------" << endl;
-	for (auto it = this->array_.begin(); it != this->array_.end(); it++) {
-		cout << it->first << "\t" << it->second[0].dType << "\t" << it->second.size() << endl;
+		cout << "\t" << it->second.isConst << "\t" << it->second.eNo << endl;
 	}
 	cout << endl;
 
-	cout << "func " << this->func_.size() << endl;
+	cout << "func " << endl;
 	cout << "name\ttype\targSize" << endl;
 	cout << "-----------------------" << endl;
 	for (auto it = this->func_.begin(); it != this->func_.end(); it++) {

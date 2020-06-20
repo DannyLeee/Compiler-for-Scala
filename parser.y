@@ -10,6 +10,7 @@ int isVarOrMethodName(const string& name, const vector<table>& tableList, const 
 int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter);
 void dump();
 void printTabs();
+void printType(dataType t);
 
 vector <table> sTableList;
 int current_t;
@@ -141,6 +142,21 @@ var_declar:     VAR ID type_
                             entry temp($3);
                             sTableList[current_t].insert(*$2, temp);
                         }
+
+                        if (current_t == 1)
+                        {
+                            // global
+                            printTabs();
+                            outputFile << "field static ";
+                            printType(sTableList[current_t].entry_[*$2].dType);
+                            outputFile << *$2 << endl;
+                            sTableList[current_t].entry_[*$2].eNo = -1;
+                        }
+                        else
+                        {
+                            // local
+                            sTableList[current_t].entry_[*$2].eNo = sTableList[current_t].entry_.size() - 1;
+                        }                
                     }
                     else
                     {
@@ -158,6 +174,21 @@ var_declar:     VAR ID type_
                         if ($3 == NTYPE)
                         {
                             sTableList[current_t].insert(*$2, *$5);
+
+                            if (current_t == 1)
+                            {
+                                // global
+                                printTabs();
+                                outputFile << "field static ";
+                                printType(sTableList[current_t].entry_[*$2].dType);
+                                outputFile << *$2 << endl;
+                                sTableList[current_t].entry_[*$2].eNo = -1;
+                            }
+                            else
+                            {
+                                // local
+                                sTableList[current_t].entry_[*$2].eNo = sTableList[current_t].entry_.size() - 1;
+                            }
                         }
                         else
                         {
@@ -165,6 +196,21 @@ var_declar:     VAR ID type_
                             {
                                 // Trace("Reducing to constant declar\n");
                                 sTableList[current_t].insert(*$2, *$5);
+
+                                if (current_t == 1)
+                                {
+                                    // global
+                                    printTabs();
+                                    outputFile << "field static ";
+                                    printType(sTableList[current_t].entry_[*$2].dType);
+                                    outputFile << *$2 << endl;
+                                    sTableList[current_t].entry_[*$2].eNo = -1;
+                                }
+                                else
+                                {
+                                    // local
+                                    sTableList[current_t].entry_[*$2].eNo = sTableList[current_t].entry_.size() - 1;
+                                }
                             }
                             else
                             {
@@ -291,23 +337,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
 
                         printTabs();
                         outputFile << "method public static ";
-                        switch ($6)  // function type
-                        {
-                            case CHAR_:
-                            outputFile << "char ";
-                                break;
-                            case INT_:
-                            outputFile << "int ";
-                                break;
-                            case BOOLEAN_:
-                            outputFile << "bool ";
-                                break;
-                            case NTYPE:
-                            outputFile << "void ";
-                                break;
-                            default:
-                                break;
-                        }
+                        printType($6);
                         outputFile << *$2 << " ";   // function name
                         // if function has no argument
                         if ($4->size() == 0)
@@ -336,14 +366,17 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     // insert argument variable to next table
                     for (int i = 0; i < $4->size(); i++)
                     {
+                        
                         entry temp($4->at(i).dType);
                         new_t.insert(*($4->at(i).val.sVal), temp);
+                        new_t.entry_[*($4->at(i).val.sVal)].eNo = new_t.entry_.size() - 1;  // insert eNo
                     }
                     sTableList.push_back(new_t);
                     current_t += 1;
                     whereMethod -= 1;
                 } block_content '}'
                 {
+                    dump();
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
@@ -789,14 +822,37 @@ void dump()
 {
     for (int i = current_t; i >= 0; i--)
     {
-        cout << "table " << i << endl;
+        cout << "table " << i << endl << endl;
         sTableList[i].dump();
         cout << endl;
     }
+    cout << "====================" << endl;
 }
 
 void printTabs()
 {
     for (int i = 0; i < current_t; i++)
         outputFile << '\t';
+}
+
+void printType(dataType type)
+{
+    switch (type)  // function type
+    {
+        case CHAR_:
+        outputFile << "char ";
+            break;
+        case INT_:
+        outputFile << "int ";
+            break;
+        case BOOLEAN_:
+        outputFile << "int ";
+            break;
+        case NTYPE:
+        outputFile << "void ";
+            break;
+        default:
+        outputFile << "int ";
+            break;
+    }
 }
