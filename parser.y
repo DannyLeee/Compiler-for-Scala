@@ -20,6 +20,7 @@ string currentMethod;
 int whereMethod;
 int error;
 fstream outputFile;
+string className;
 %}
 
 %union {
@@ -59,23 +60,23 @@ program:    obj_declar;
     // any type of the variable expression
 constant_exp:   _CHAR_
                 {
-                    entry* temp = new entry(CHAR_, $1, false);
+                    entry* temp = new entry(CHAR_, $1, 1);
                     $$ = temp;
                 } |
                 STRING_
                 {
-                    entry* temp = new entry(STR_, $1, false);
+                    entry* temp = new entry(STR_, $1, 1);
                     $$ = temp;
                 } | num | t_f;
 
 t_f:            TRUE
                 {
-                    entry* temp = new entry(BOOLEAN_, $1, false);
+                    entry* temp = new entry(BOOLEAN_, $1, 1);
                     $$ = temp;
                 } |
                 FALSE
                 {
-                    entry* temp = new entry(BOOLEAN_, $1, false);
+                    entry* temp = new entry(BOOLEAN_, $1, 1);
                     $$ = temp;
                 };
 
@@ -246,6 +247,7 @@ obj_declar:     OBJECT ID
                     // }
                     
                     outputFile << "class " << *$2 << endl << '{' << endl;
+                    className = *$2;
                 } '{'
                 {
                     // open a new symbol table
@@ -403,7 +405,17 @@ exp:            constant_exp | method_invocate |
                         *temp = sTableList[p].entry_[*$1];
                         if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())   // ID is array name
                             temp->dType = dataType::NTYPE;
+                        
+                        if (!temp->isConst)
+                        {
+                            temp->val.sVal = $1;
+                            temp->isConst = -1;
+                        }
                         $$ = temp;
+                        // cout << "+++++++++++++++++++++++++++++++++++" << endl;
+                        // cout << "type\tname\tval" << endl;
+                        // cout << temp->dType << "\t" << *temp->val.sVal << "\t"  << endl;
+                        // cout << "+++++++++++++++++++++++++++++++++++" << endl;
                     }
                     else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
                     {
@@ -546,13 +558,14 @@ simple_stmts:   exp | RETURN
                     {
                         entry temp(NTYPE);
                         sTableList[current_t + whereMethod].func_[currentMethod][0] = temp;  // bind the return value
+
+                        outputFile << printTabs() << "return" << endl;
                     }
                     else
                         yyerror("return type error - invalid conversion");
                 } |
                 RETURN exp
                 {
-                    
                     // error handle
                     if (sTableList[current_t + whereMethod].lookup(currentMethod, objType::FUNC) == -1)
                     {
@@ -560,7 +573,11 @@ simple_stmts:   exp | RETURN
                         exit(-1);
                     }
                     if ($2->dType == sTableList[current_t + whereMethod].func_[currentMethod][0].dType)
+                    {
                         sTableList[current_t + whereMethod].func_[currentMethod][0] = *$2;  // bind the return value
+
+                        outputFile << printTabs() << "ireturn" << endl;
+                    }
                     else
                         yyerror("return type error - invalid conversion");
                 } |
@@ -573,7 +590,7 @@ simple_stmts:   exp | RETURN
                         if (sTableList[p].entry_[*$1].dType == $3->dType)
                         {
                             
-                            if (sTableList[p].entry_[*$1].isConst == false)
+                            if (sTableList[p].entry_[*$1].isConst == 0)
                                 // assign the value to ID
                                 sTableList[p].update(*$1, *$3, 0, false);
                             else
@@ -647,7 +664,7 @@ conditional:    IF '(' exp
     // loop
 num:            INTEGER
                 {
-                    entry* temp = new entry(INT_, $1, false);
+                    entry* temp = new entry(INT_, $1, 1);
                     $$ = temp;
                 };
 
@@ -672,7 +689,7 @@ loop:           WHILE '(' exp ')'
                             temp->dType = dataType::NTYPE;
                         if (temp->dType != INT_)
                             yyerror("tyep error - invalid conversion");
-                        else if (temp->isConst == true)
+                        else if (temp->isConst == 1)
                         {
                             string msg = "assignment of read-only variable '";
                             msg += *$3 + "'";
@@ -710,15 +727,61 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                 if (sTableList[p].func_[*$1][0].dType == NTYPE)
                                 {
                                     $$ = new entry(NTYPE);  // procedure will return NTYPE
-                                    // P3TODO:
                                 }
                                 else
                                 {
                                     entry* temp = new entry();
                                     *temp = sTableList[p].func_[*$1][0];
-                                    $$ = temp;  // function will return the return value 
-                                    // P3TODO:
+                                    $$ = temp;  // function will return the return value
                                 }
+                                // debug
+                                // cout << "+++++++++++++++++++++++++++++++++++" << endl;
+                                // cout << "type\tname\tval" << endl;
+                                // for (auto it = $3->begin(); it != $3->end(); it++)
+                                // {
+                                //     if (it->isConst != -1)
+                                //         cout << it->dType << "\t" << "\t" << it->val.iVal << endl;
+                                //     else
+                                //         cout << it->dType << "\t" << *it->val.sVal << "\t" << endl;
+                                // }
+                                // cout << "+++++++++++++++++++++++++++++++++++" << endl;
+
+                                // parameter to assembly code
+                                for (auto it = $3->begin(); it != $3->end(); it++)
+                                {
+                                    if (it->isConst == 1)
+                                        outputFile << printTabs() << "sipush " << it->val.iVal << endl;
+                                    else if (it->isConst == -1)
+                                    {
+                                        // find the ID position
+                                        q = isVarOrMethodName(*it->val.sVal, sTableList, current_t, objType::VAR_);
+                                        if (q == -1)
+                                            continue;
+                                        else if (q == current_t)
+                                        {
+                                            // local
+                                            p = sTableList[q].entry_[*it->val.sVal].eNo;
+                                            outputFile << printTabs() << "iload " << p << endl;
+                                        }
+                                        else if (p <= current_t)
+                                        {
+                                            // TODO: get global field
+                                            // outputFile << printTabs() << "getstatic " <<  << endl;
+                                        }
+                                    }
+                                }
+
+                                // function call in assembly code
+                                outputFile << printTabs() << "invokestatic " << printType($$->dType) << " " << className << "." << *$1 << "(";
+                                for (int i = 0; i < $3->size(); i++)
+                                {
+                                    if (i != 0)
+                                    {
+                                        outputFile << ", ";
+                                    }
+                                    outputFile << printType($3->at(i).dType);
+                                }
+                                outputFile << ")" << endl;
                                 break;
                             case -1:
                                 yyerror("invalid parameter type");

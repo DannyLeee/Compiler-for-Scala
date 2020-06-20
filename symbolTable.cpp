@@ -50,7 +50,7 @@ entry::entry(const dataType& t, const union V& v, const bool &isCon) : dType(t),
 	}
 }
 
-entry::entry(const dataType& t) : dType(t), isConst(false), eNo(-2) {
+entry::entry(const dataType& t) : dType(t), isConst(0), eNo(-2) {
 	switch (t)
 	{
 	case INT_:
@@ -74,7 +74,7 @@ entry::entry(const dataType& t) : dType(t), isConst(false), eNo(-2) {
 	}
 }
 
-entry::entry(const dataType& t, string* name) : dType(t), isConst(false), eNo(-2) {
+entry::entry(const dataType& t, string* name) : dType(t), isConst(0), eNo(-2) {
 	val.sVal = name;
 }
 

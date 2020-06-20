@@ -7,7 +7,7 @@
 using namespace std;
 
 /* symbol table entry */
-enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_, OBJ_, NTYPE };
+enum dataType { INT_, REAL_, CHAR_, STR_, BOOLEAN_, OBJ_, NTYPE, NAME };
 
 struct entry {
 	enum dataType dType;
@@ -26,14 +26,18 @@ struct entry {
 		V(bool b) { bVal = b; }
 		~V() {}
 	}val;
-	bool isConst;
+
+	// is constant: 1
+	// not constant: 0
+	// is ID: -1
+	int isConst;
 	
 	// entry sequential num
 	// global: -1
 	// local: 0, 1, 2, ...
 	int eNo;
 	
-	entry() {dType = INT_; eNo = -1;}	// for variable declaration (hasn't define type)
+	entry() {isConst = 0; dType = INT_; eNo = -1;}	// for variable declaration (hasn't define type)
 	// entry(const entry& e);	// copy constructor
 	entry(const dataType& t, const union V& v, const bool &isCon); // for constant exp
 	entry(const dataType& t);	// for variable declaration (has define type)
