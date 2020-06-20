@@ -23,14 +23,13 @@ int error;
     entry* entryPt;
     char cVal;
     string* strVal;
-    double realVal;
     bool boolVal;
     vector<entry>* list;
     dataType typeVal;
 }
 
 /* keyword tokens */
-%token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FLOAT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN STRING TO TYPE VAL VAR WHILE ARROW
+%token SEMICOLON BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FOR IF INT NULL_ OBJECT PRINT PRINTLN READ REPEAT RETURN TO TYPE VAL VAR WHILE ARROW
 
 %type <entryPt> constant_exp num exp method_invocate t_f
 %type <typeVal> type_
@@ -39,7 +38,6 @@ int error;
 /* other tokens */
 %token <strVal> _CHAR_ STRING_ ID
 %token <intVal> INTEGER
-%token <realVal> REAL
 %token <boolVal> TRUE FALSE
 
 %left OR
@@ -81,10 +79,6 @@ type_:          ':' CHAR
                 {
                     $$ = dataType::CHAR_;
                 } |
-                ':' STRING
-                {
-                    $$ = dataType::STR_;
-                } |
                 ':' INT
                 {
                     $$ = dataType::INT_;
@@ -93,10 +87,6 @@ type_:          ':' CHAR
                 {
                     $$ = dataType::BOOLEAN_;
                 }|
-                ':' FLOAT 
-                {
-                    $$ = dataType::REAL_;
-                } |
                 {
                     $$ = dataType::NTYPE;
                 };
@@ -187,31 +177,8 @@ var_declar:     VAR ID type_
                     }
                 };
 
-array_declar:   VAR ID type_ '[' exp ']'
-                {
-                    // linenum += 1;
-                    // check the symbol table first
-                    if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
-                    {
-                        // insert symbol table
-                        if ($3 == NTYPE)
-                            yyerror("array don't has type");
-                        else if ($5->dType != INT_)
-                            yyerror("not integer inside []");
-                        else
-                            sTableList[current_t].insert(*$2, $3, $5->val.iVal);
-                    }
-                    else
-                    {
-                        string msg = "conflicting declaration '";
-                        msg += *$2 + "'";
-                        yyerror(msg);
-                    }
-                    // linenum -= 1;
-                };
-
     /* Program Units */
-data_declar:    const_declar | var_declar | array_declar;
+data_declar:    const_declar | var_declar;
 obj_content:    method_declar | data_declar | method_declar obj_content | data_declar obj_content;
 
 obj_declar:     OBJECT ID
@@ -379,35 +346,35 @@ exp:            constant_exp | method_invocate |
                 } |
                 exp '+' exp
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 + *$3;
                     else 
                         yyerror("no match for 'operator+'");
                 } |
                 exp '-' exp
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 - *$3;
                     else 
                         yyerror("no match for 'operator-'");
                 } |
                 exp '*' exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 * *$3;
                     else 
                         yyerror("no match for 'operator*'");
                 } |
                 exp '/' exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 / *$3;
                     else 
                         yyerror("no match for 'operator/'");
                 } |
                 '-' exp %prec UMINUS
                 {
-                    if ($2->dType == INT_ || $2->dType == REAL_)
+                    if ($2->dType == INT_)
                     {
                         // *$$ = -(*$2);    //don't know why segment fault int assign overload
                         entry* temp = new entry();
@@ -427,28 +394,28 @@ exp:            constant_exp | method_invocate |
                 } |
                 exp LES exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 < *$3;
                     else 
                         yyerror("no match for 'operator<'");
                 } |
                 exp GRT exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 > *$3;
                     else 
                         yyerror("no match for 'operator>'");
                 } |
                 exp LEQ exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 <= *$3;
                     else 
                         yyerror("no match for 'operator<='");
                 } |
                 exp EQU exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 == *$3;
                     else if ($1->dType == $3->dType)
                         *$$ = *$1 == *$3;
@@ -457,16 +424,14 @@ exp:            constant_exp | method_invocate |
                 } |
                 exp GEQ exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
+                    if ($1->dType == INT_ && $3->dType == INT_)
                         *$$ = *$1 >= *$3;
                     else 
                         yyerror("no match for 'operator>='");
                 } |
                 exp NEQ exp 
                 {
-                    if (($1->dType == INT_ || $1->dType == REAL_) && ($3->dType == INT_ || $3->dType == REAL_))
-                        *$$ = *$1 != *$3;
-                    else if ($1->dType == $3->dType)
+                    if ($1->dType == $3->dType)
                         *$$ = *$1 != *$3;
                     else 
                         yyerror("no match for 'operator!='");
@@ -484,36 +449,6 @@ exp:            constant_exp | method_invocate |
                         *$$ = *$1 || *$3;
                     else
                         yyerror("no match for 'operator||'");
-                } |
-                ID '[' exp ']'
-                {
-                    // linenum += 1;
-                    if ($3->dType == INT_)
-                    {
-                        int p;
-
-                        if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
-                        {
-                            // copy constructor
-                            if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())
-                            {
-                                entry* temp = new entry();
-                                *temp = sTableList[p].entry_[*$1];
-                                $$ = temp;
-                            }
-                            else
-                                yyerror("invalid for array subscript");
-                        }
-                        else
-                        {
-                            string msg = "'";
-                            msg += *$1 + "' was not declared in this scope(ID[exp])";
-                            yyerror(msg);
-                        }
-                    }
-                    else
-                        yyerror("not integer inside []");
-                    // linenum -= 1;
                 } |
                 '(' exp ')'
                 {
@@ -552,22 +487,6 @@ simple_stmts:   exp | RETURN
                         yyerror("return type error - invalid conversion");
                 } |
                 PRINT exp | PRINTLN exp |
-                READ ID
-                {
-                    int p = isVarOrMethodName(*$2, sTableList, current_t, objType::VAR_);
-                    if (p != -1)
-                    {
-                        // P3TODO:
-                    }
-                    else
-                    {
-                        // linenum += 1;
-                        string msg = "'";
-                        msg += *$2 + "' was not declared in this scope";
-                        yyerror(msg);
-                        // linenum -= 1;
-                    }
-                } |
                 ID '=' exp 
                 {
                     int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
@@ -593,25 +512,6 @@ simple_stmts:   exp | RETURN
                     {
                         string msg = "'";
                         msg += *$1 + "' was not declared in this scope(ID=exp)";
-                        yyerror(msg);
-                    }
-                } |
-                ID '[' exp ']' '=' exp
-                {
-                    int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
-                    if (p != -1)
-                    { 
-                        // check [exp] is int or error
-                        if ($3->dType == INT_)
-                            // assign the value to ID[i]
-                            sTableList[p].update(*$1, *$6, $3->val.iVal, true);
-                        else
-                            yyerror("not integer inside []");
-                    }
-                    else
-                    {
-                        string msg = "'";
-                        msg += *$1 + "' was not declared in this scope";
                         yyerror(msg);
                     }
                 };
@@ -667,12 +567,7 @@ conditional:    IF '(' exp
                 } ')' stmts else_;
 
     // loop
-num:            REAL
-                {
-                    entry* temp = new entry(REAL_, $1, false);
-                    $$ = temp;
-                } |
-                INTEGER
+num:            INTEGER
                 {
                     entry* temp = new entry(INT_, $1, false);
                     $$ = temp;

@@ -7,7 +7,6 @@
 #define token(t) {LIST; /*printf("<'%s'>\n",t);*/ return *t;}
 #define tokenKeyword(t) {LIST; /*printf("<%s>\n",t);*/}
 #define tokenInteger(t,i) {LIST; /*printf("<%s: %d>\n",t,atoi(i));*/ yylval.intVal = atoi(i);}
-#define tokenFloat(t,f) {LIST; /*printf("<%s: %f>\n",t,atof(f));*/ yylval.realVal = atof(f);}
 #define tokenString(t,s) {LIST; /*printf("<%s%s>\n",t,s);*/ yylval.strVal = new string(s);}
 
 #define MAX_LINE_LENG 256
@@ -31,9 +30,6 @@ id          {alphabet}({alphabet}|{digit})*
 
 /* number system */
 integer     {digit}+
-plain_real  {digit}+"."{digit}+ 
-expreal     {digit}+"."{digit}+[Ee][+-]?{digit}+
-real        {plain_real}|{expreal}
 
 /* state */
 %x C_COMMENT
@@ -127,11 +123,6 @@ false   {
     return FALSE;
 }
 
-float   {
-    tokenKeyword(yytext);
-    return FLOAT;
-}
-
 for {
     tokenKeyword(yytext);
     return FOR;
@@ -182,11 +173,6 @@ return  {
     return RETURN;
 }
 
-string  {
-    tokenKeyword(yytext);
-    return STRING;
-}
-
 to  {
     tokenKeyword(yytext);
     return TO;
@@ -227,12 +213,6 @@ while   {
 {integer}   {
     tokenInteger("integer", yytext);
     return INTEGER;
-}
-
-    /* Real */
-{real}      {
-    tokenFloat("real", yytext);
-    return REAL;
 }
 
     /* char */
