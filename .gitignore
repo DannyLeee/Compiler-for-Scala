@@ -3,3 +3,4 @@ scanner
 *.scala
 parser
 y.*
+*.jasm

@@ -1,5 +1,6 @@
 %{
 #include <stdlib.h>
+#include <fstream>
 #include "symbolTable.h"
 #include "lex.yy.cpp"
 
@@ -8,6 +9,7 @@ int listLookup(const string& name, const vector <entry>& l);
 int isVarOrMethodName(const string& name, const vector<table>& tableList, const int& cur, const objType& objT);
 int parameterCheck(const vector<entry>& argument, const vector<entry>& parameter);
 void dump();
+void printTabs();
 
 vector <table> sTableList;
 int current_t;
@@ -16,6 +18,7 @@ string fileName;
 string currentMethod;
 int whereMethod;
 int error;
+fstream outputFile;
 %}
 
 %union {
@@ -198,6 +201,8 @@ obj_declar:     OBJECT ID
                     //     yyerror(msg);
                     //     linenum -= 1;
                     // }
+                    
+                    outputFile << "class " << *$2 << endl << '{' << endl;
                 } '{'
                 {
                     // open a new symbol table
@@ -217,6 +222,8 @@ obj_declar:     OBJECT ID
                     sTableList.pop_back();
                     current_t -= 1;
                     m_count = 0;
+                    
+                    outputFile << '}';
                 };
 
 formal_arguments:   ID type_
@@ -281,6 +288,40 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         sTableList[current_t].insert(*$2, $6, *$4);
                         currentMethod = *$2;
                         whereMethod = 0;
+
+                        printTabs();
+                        outputFile << "method public static ";
+                        switch ($6)  // function type
+                        {
+                            case CHAR_:
+                            outputFile << "char ";
+                                break;
+                            case INT_:
+                            outputFile << "int ";
+                                break;
+                            case BOOLEAN_:
+                            outputFile << "bool ";
+                                break;
+                            case NTYPE:
+                            outputFile << "void ";
+                                break;
+                            default:
+                                break;
+                        }
+                        outputFile << *$2 << " ";   // function name
+                        // if function has no argument
+                        if ($4->size() == 0)
+                            outputFile << "(java.lang.String[])" << endl;
+                        else
+                        {
+                            // TODO: get arguments types list into java assembly code
+                        }
+                        printTabs();
+                        outputFile << "max_stack 15" << endl;
+                        printTabs();
+                        outputFile << "max_locals 15" << endl;
+                        printTabs();
+                        outputFile << '{' << endl;
                     }
                     else
                     {
@@ -309,6 +350,9 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     whereMethod += 1;
                     if (*$2 == "main")
                         m_count += 1;
+
+                    printTabs();
+                    outputFile << '}' << endl;
                 };
 
     /* Statements */
@@ -681,6 +725,9 @@ int main(int argc, char *argv[])
     sTableList.push_back(mainTable);
     current_t = 0;
     error = 0;
+    string temp = fileName.erase(fileName.length() - 5, 5) + "jasm";
+    outputFile.open(temp, std::ios::out);
+    cout << "writing to file: " << temp << endl;
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
@@ -690,6 +737,7 @@ int main(int argc, char *argv[])
     }
 
     cout << "total error: " << error << endl << endl;
+    outputFile.close();
 }
 
 void yyerror(string msg)
@@ -745,4 +793,10 @@ void dump()
         sTableList[i].dump();
         cout << endl;
     }
+}
+
+void printTabs()
+{
+    for (int i = 0; i < current_t; i++)
+        outputFile << '\t';
 }
