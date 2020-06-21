@@ -21,6 +21,7 @@ int whereMethod;
 int error;
 fstream outputFile;
 string className;
+int labelNo = 1;
 %}
 
 %union {
@@ -65,6 +66,7 @@ constant_exp:   _CHAR_
                 } |
                 STRING_
                 {
+                    // cout << "y debug: " << $1 << endl;
                     entry* temp = new entry(STR_, $1, 1);
                     $$ = temp;
                 } | num | t_f;
@@ -409,7 +411,7 @@ exp:            constant_exp
                         outputFile << printTabs() << "iconst_" << $1->val.bVal << endl;
                             break;
                         case STR_:
-                        outputFile << printTabs() << "ldc " << *$1->val.sVal << endl;
+                        outputFile << printTabs() << "ldc " << "bug to fix" << endl; // TODO: fix
                             break;
                     }
                 } | method_invocate |
@@ -479,28 +481,40 @@ exp:            constant_exp
                 exp '+' exp
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 + *$3;
+                        outputFile << printTabs() << "iadd" << endl;
+                    }
                     else 
                         yyerror("no match for 'operator+'");
                 } |
                 exp '-' exp
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 - *$3;
+                        outputFile << printTabs() << "isub" << endl;
+                    }
                     else 
                         yyerror("no match for 'operator-'");
                 } |
                 exp '*' exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 * *$3;
+                        outputFile << printTabs() << "imul" << endl;
+                    }
                     else 
                         yyerror("no match for 'operator*'");
                 } |
                 exp '/' exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 / *$3;
+                        outputFile << printTabs() << "idiv" << endl;
+                    }
                     else 
                         yyerror("no match for 'operator/'");
                 } |
@@ -513,6 +527,7 @@ exp:            constant_exp
                         temp->dType = $2->dType;
                         $$ = temp;
                         // Trace("Reducing to exp from minus\n");
+                        outputFile << printTabs() << "ineg" << endl;
                     }
                     else 
                         yyerror("no match for 'operator-'");
@@ -520,65 +535,144 @@ exp:            constant_exp
                 '!' exp 
                 {
                     if ($2->dType == BOOLEAN_)
+                    {
                         *$$ = !(*$2);
+                        outputFile << printTabs() << "ixor" << endl;
+                    }
                     else
                         yyerror("no match for 'operator!'");
                 } |
                 exp LES exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 < *$3;
+                        outputFile << printTabs() << "isub" << endl                     // Subtraction
+                                   << printTabs() << "iflt L" << labelNo << endl        // if less than zero jump to true (L1)
+                                   << printTabs() << "iconst_0" << endl                 // other false
+                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
+                                   << "L" << labelNo++ << ":" << endl                   // L1
+                                   << printTabs() << "iconst_1" << endl                 // true
+                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                    }
                     else 
                         yyerror("no match for 'operator<'");
                 } |
                 exp GRT exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 > *$3;
+                        outputFile << printTabs() << "isub" << endl                     // Subtraction
+                                   << printTabs() << "ifgt L" << labelNo << endl        // if greater than zero jump to true (L1)
+                                   << printTabs() << "iconst_0" << endl                 // other false
+                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
+                                   << "L" << labelNo++ << ":" << endl                   // L1
+                                   << printTabs() << "iconst_1" << endl                 // true
+                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                    }
                     else 
                         yyerror("no match for 'operator>'");
                 } |
                 exp LEQ exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 <= *$3;
+                        outputFile << printTabs() << "isub" << endl                     // Subtraction
+                                   << printTabs() << "ifle L" << labelNo << endl        // if less than or equal zero jump to true (L1)
+                                   << printTabs() << "iconst_0" << endl                 // other false
+                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
+                                   << "L" << labelNo++ << ":" << endl                   // L1
+                                   << printTabs() << "iconst_1" << endl                 // true
+                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                    }
                     else 
                         yyerror("no match for 'operator<='");
                 } |
                 exp EQU exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 == *$3;
+                        outputFile << printTabs() << "isub" << endl                     // Subtraction
+                                   << printTabs() << "ifeq L" << labelNo << endl        // if equal zero jump to true (L1)
+                                   << printTabs() << "iconst_0" << endl                 // other false
+                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
+                                   << "L" << labelNo++ << ":" << endl                   // L1
+                                   << printTabs() << "iconst_1" << endl                 // true
+                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                    }
                     else if ($1->dType == $3->dType)
+                    {
+                        // ??
                         *$$ = *$1 == *$3;
+                        if ($$->val.bVal)
+                            outputFile << printTabs() << "iconst_0" << endl;
+                        else
+                            outputFile << printTabs() << "iconst_0" << endl;
+                    }
                     else 
                         yyerror("no match for 'operator=='");
                 } |
                 exp GEQ exp 
                 {
                     if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 >= *$3;
+                        outputFile << printTabs() << "isub" << endl                     // Subtraction
+                                   << printTabs() << "ifge L" << labelNo << endl        // if greater than or equal zero jump to true (L1)
+                                   << printTabs() << "iconst_0" << endl                 // other false
+                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
+                                   << "L" << labelNo++ << ":" << endl                   // L1
+                                   << printTabs() << "iconst_1" << endl                 // true
+                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                    }
                     else 
                         yyerror("no match for 'operator>='");
                 } |
                 exp NEQ exp 
                 {
-                    if ($1->dType == $3->dType)
+                    if ($1->dType == INT_ && $3->dType == INT_)
+                    {
                         *$$ = *$1 != *$3;
+                        outputFile << printTabs() << "isub" << endl                     // Subtraction
+                                   << printTabs() << "ifne L" << labelNo << endl        // if not equal zero jump to true (L1)
+                                   << printTabs() << "iconst_0" << endl                 // other false
+                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
+                                   << "L" << labelNo++ << ":" << endl                   // L1
+                                   << printTabs() << "iconst_1" << endl                 // true
+                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                    }
+                    else if ($1->dType == $3->dType)
+                    {
+                        // ??
+                        *$$ = *$1 != *$3;
+                        if ($$->val.bVal)
+                            outputFile << printTabs() << "iconst_0" << endl;
+                        else
+                            outputFile << printTabs() << "iconst_0" << endl;
+                    }
                     else 
                         yyerror("no match for 'operator!='");
                 } |
                 exp AND exp 
                 {
                     if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
+                    {
                         *$$ = *$1 && *$3;
+                        outputFile << printTabs() << "iand" << endl;
+                    }
                     else
                         yyerror("no match for 'operator&&'");
                 } |
                 exp OR exp
                 {
                     if ($1->dType == BOOLEAN_ && $3->dType == BOOLEAN_)
+                    {
                         *$$ = *$1 || *$3;
+                        outputFile << printTabs() << "ior" << endl;
+                    }
                     else
                         yyerror("no match for 'operator||'");
                 } |
