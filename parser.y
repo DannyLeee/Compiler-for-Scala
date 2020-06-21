@@ -61,24 +61,24 @@ program:    obj_declar;
     // any type of the variable expression
 constant_exp:   _CHAR_
                 {
-                    entry* temp = new entry(CHAR_, $1, 1);
+                    entry* temp = new entry(CHAR_, $1, 0);
                     $$ = temp;
                 } |
                 STRING_
                 {
                     // cout << "y debug: " << $1 << endl;
-                    entry* temp = new entry(STR_, $1, 1);
+                    entry* temp = new entry(STR_, $1, 0);
                     $$ = temp;
                 } | num | t_f;
 
 t_f:            TRUE
                 {
-                    entry* temp = new entry(BOOLEAN_, $1, 1);
+                    entry* temp = new entry(BOOLEAN_, $1, 0);
                     $$ = temp;
                 } |
                 FALSE
                 {
-                    entry* temp = new entry(BOOLEAN_, $1, 1);
+                    entry* temp = new entry(BOOLEAN_, $1, 0);
                     $$ = temp;
                 };
 
@@ -547,13 +547,13 @@ exp:            constant_exp
                     if ($1->dType == INT_ && $3->dType == INT_)
                     {
                         *$$ = *$1 < *$3;
-                        outputFile << printTabs() << "isub" << endl                     // Subtraction
-                                   << printTabs() << "iflt L" << labelNo << endl        // if less than zero jump to true (L1)
-                                   << printTabs() << "iconst_0" << endl                 // other false
-                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
-                                   << "L" << labelNo++ << ":" << endl                   // L1
-                                   << printTabs() << "iconst_1" << endl                 // true
-                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                        outputFile << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "iflt L" << labelNo << "_true" << endl     // if less than zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo++ << "_false:" << endl;                    // L_false
                     }
                     else 
                         yyerror("no match for 'operator<'");
@@ -563,13 +563,13 @@ exp:            constant_exp
                     if ($1->dType == INT_ && $3->dType == INT_)
                     {
                         *$$ = *$1 > *$3;
-                        outputFile << printTabs() << "isub" << endl                     // Subtraction
-                                   << printTabs() << "ifgt L" << labelNo << endl        // if greater than zero jump to true (L1)
-                                   << printTabs() << "iconst_0" << endl                 // other false
-                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
-                                   << "L" << labelNo++ << ":" << endl                   // L1
-                                   << printTabs() << "iconst_1" << endl                 // true
-                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                        outputFile << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "ifgt L" << labelNo << "_true" << endl     // if greater than zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo++ << "_false:" << endl;                    // L_false
                     }
                     else 
                         yyerror("no match for 'operator>'");
@@ -579,13 +579,13 @@ exp:            constant_exp
                     if ($1->dType == INT_ && $3->dType == INT_)
                     {
                         *$$ = *$1 <= *$3;
-                        outputFile << printTabs() << "isub" << endl                     // Subtraction
-                                   << printTabs() << "ifle L" << labelNo << endl        // if less than or equal zero jump to true (L1)
-                                   << printTabs() << "iconst_0" << endl                 // other false
-                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
-                                   << "L" << labelNo++ << ":" << endl                   // L1
-                                   << printTabs() << "iconst_1" << endl                 // true
-                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                        outputFile << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "ifle L" << labelNo << "_true" << endl     // if less than or equal zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo++ << "_false:" << endl;                    // L_false
                     }
                     else 
                         yyerror("no match for 'operator<='");
@@ -595,13 +595,13 @@ exp:            constant_exp
                     if ($1->dType == INT_ && $3->dType == INT_)
                     {
                         *$$ = *$1 == *$3;
-                        outputFile << printTabs() << "isub" << endl                     // Subtraction
-                                   << printTabs() << "ifeq L" << labelNo << endl        // if equal zero jump to true (L1)
-                                   << printTabs() << "iconst_0" << endl                 // other false
-                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
-                                   << "L" << labelNo++ << ":" << endl                   // L1
-                                   << printTabs() << "iconst_1" << endl                 // true
-                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                        outputFile << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "ifeq L" << labelNo << "_true" << endl     // if equal zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo++ << "_false:" << endl;                    // L_false
                     }
                     else if ($1->dType == $3->dType)
                     {
@@ -620,13 +620,13 @@ exp:            constant_exp
                     if ($1->dType == INT_ && $3->dType == INT_)
                     {
                         *$$ = *$1 >= *$3;
-                        outputFile << printTabs() << "isub" << endl                     // Subtraction
-                                   << printTabs() << "ifge L" << labelNo << endl        // if greater than or equal zero jump to true (L1)
-                                   << printTabs() << "iconst_0" << endl                 // other false
-                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
-                                   << "L" << labelNo++ << ":" << endl                   // L1
-                                   << printTabs() << "iconst_1" << endl                 // true
-                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                        outputFile << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "ifge L" << labelNo << "_true" << endl     // if greater than or equal zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo++ << "_false:" << endl;                    // L_false
                     }
                     else 
                         yyerror("no match for 'operator>='");
@@ -636,13 +636,13 @@ exp:            constant_exp
                     if ($1->dType == INT_ && $3->dType == INT_)
                     {
                         *$$ = *$1 != *$3;
-                        outputFile << printTabs() << "isub" << endl                     // Subtraction
-                                   << printTabs() << "ifne L" << labelNo << endl        // if not equal zero jump to true (L1)
-                                   << printTabs() << "iconst_0" << endl                 // other false
-                                   << printTabs() << "goto L" << labelNo + 1 << endl    // and jump to L2
-                                   << "L" << labelNo++ << ":" << endl                   // L1
-                                   << printTabs() << "iconst_1" << endl                 // true
-                                   << "L" << labelNo++ << ":" << endl;                  // L2
+                        outputFile << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "ifne L" << labelNo << "_true" << endl     // if not equal zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo++ << "_false:" << endl;                    // L_false
                     }
                     else if ($1->dType == $3->dType)
                     {
@@ -813,7 +813,17 @@ block:          '{'
                 };
 
     // conditional
-else_:           ELSE stmts | ;
+else_:          ELSE
+                {
+                    outputFile << printTabs() << "goto L" << labelNo << "_end" << endl
+                               << "L" << labelNo << "_else:" << endl;
+                } stmts
+                {
+                    outputFile << "L" << labelNo++ << "_end:" << endl;
+                } | 
+                {
+                    outputFile << "L" << labelNo++ << "_else:" << endl;
+                };
 
 conditional:    IF '(' exp
                 {
@@ -823,25 +833,34 @@ conditional:    IF '(' exp
                         yyerror("tyep error - if statement needs boolean expression in ()");
                         // linenum -= 1;
                     }
+                    outputFile << printTabs() << "ifeq L" << labelNo << "_else" << endl;
                 } ')' stmts else_;
 
     // loop
 num:            INTEGER
                 {
-                    entry* temp = new entry(INT_, $1, 1);
+                    entry* temp = new entry(INT_, $1, 0);
                     $$ = temp;
                 };
 
-loop:           WHILE '(' exp ')'
+loop:           WHILE
                 {
-                    if ($3->dType != BOOLEAN_)
+                    outputFile << "L" << labelNo << "_begin:" << endl;
+                } '(' exp ')'
+                {
+                    if ($4->dType != BOOLEAN_)
                     {
                         // linenum += 1;
                         yyerror("tyep error - while statement needs boolean expression in ()");
                         // linenum -= 1;
                     }
-                } stmts |
-                FOR '(' ID
+                    outputFile << printTabs() << "ifeq L" << labelNo << "_end" << endl;
+                } stmts
+                {
+                    outputFile << printTabs() << "goto L" << labelNo << "_begin" << endl
+                               << "L" << labelNo++ << "_end:" << endl;
+                } |
+                FOR '(' ID ARROW num TO num ')'
                 {
                     // linenum += 1;
                     int p;
@@ -859,6 +878,43 @@ loop:           WHILE '(' exp ')'
                             msg += *$3 + "'";
                             yyerror(msg);
                         }
+
+                        outputFile << printTabs() << "sipush " << $5->val.iVal << endl; // push num1 on stack
+                        if (p == current_t)
+                        {
+                            // local
+                            int eNo = sTableList[p].entry_[*$3].eNo;
+                            outputFile << printTabs() << "istore " << eNo << endl;
+                        }
+                        else
+                        {
+                            // global
+                            dataType t = sTableList[p].entry_[*$3].dType;
+                            outputFile << printTabs() << "putstatic " << printType(t) << " " << className << "." << *$3 << endl;
+                        }
+                        
+                        outputFile << "L" << labelNo << "_begin:" << endl;
+                        if (p == current_t)
+                        {
+                            // local
+                            int eNo = sTableList[p].entry_[*$3].eNo;
+                            outputFile << printTabs() << "iload " << eNo << endl;
+                        }
+                        else
+                        {
+                            // global
+                            dataType t = sTableList[p].entry_[*$3].dType;
+                            outputFile << printTabs() << "getstatic " << printType(t) << " " << className << "." << *$3 << endl;
+                        }
+                        outputFile << printTabs() << "sipush " << $7->val.iVal << endl
+                                   << printTabs() << "isub" << endl                             // Subtraction
+                                   << printTabs() << "iflt L" << labelNo << "_true" << endl     // if less than zero jump to true (L_true)
+                                   << printTabs() << "iconst_0" << endl                         // other false
+                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
+                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "iconst_1" << endl                         // true
+                                   << "L" << labelNo << "_false:" << endl                       // L_false 
+                                   << printTabs() << "ifeq L" << labelNo << "_end" << endl;     // if false leave loop
                     }
                     else
                     {
@@ -867,7 +923,43 @@ loop:           WHILE '(' exp ')'
                         yyerror(msg);
                     }
                     // linenum -= 1;
-                } ARROW num TO num ')' stmts;
+                } stmts
+                {
+                    // find ID
+                    int p;
+                    if ((p = isVarOrMethodName(*$3, sTableList, current_t, objType::VAR_)) != -1)
+                    {
+                        // ID++
+                        if (p == current_t)
+                        {
+                            // local
+                            int eNo = sTableList[p].entry_[*$3].eNo;
+                            outputFile << printTabs() << "iload " << eNo << endl;
+                        }
+                        else
+                        {
+                            // global
+                            dataType t = sTableList[p].entry_[*$3].dType;
+                            outputFile << printTabs() << "getstatic " << printType(t) << " " << className << "." << *$3 << endl;
+                        }
+                        outputFile << printTabs() << "sipush 1" << endl
+                                   << printTabs() << "iadd" << endl;
+                        if (p == current_t)
+                        {
+                            // local
+                            int eNo = sTableList[p].entry_[*$3].eNo;
+                            outputFile << printTabs() << "istore " << eNo << endl;
+                        }
+                        else
+                        {
+                            // global
+                            dataType t = sTableList[p].entry_[*$3].dType;
+                            outputFile << printTabs() << "putstatic " << printType(t) << " " << className << "." << *$3 << endl;
+                        }
+                        outputFile << printTabs() << "goto L" << labelNo << "_begin" << endl
+                                << "L" << labelNo++ << "_end:" << endl;
+                    }
+                };
 
     /* function or procedure invocation */
 method_invocate:    ID '(' comma_separate_exp ')'
