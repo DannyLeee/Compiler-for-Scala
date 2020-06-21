@@ -581,7 +581,20 @@ simple_stmts:   exp | RETURN
                     else
                         yyerror("return type error - invalid conversion");
                 } |
-                PRINT exp | PRINTLN exp |
+                PRINT
+                {
+                    outputFile << printTabs() << "getstatic java.io.PrintStream java.lang.System.out" << endl;
+                } exp
+                {
+                    outputFile << printTabs() << "invokevirtual void java.io.PrintStream.print(java.lang.String)" << endl;
+                } |
+                PRINTLN
+                {
+                    outputFile << printTabs() << "getstatic java.io.PrintStream java.lang.System.out" << endl;
+                } exp
+                {
+                    outputFile << printTabs() << "invokevirtual void java.io.PrintStream.println(java.lang.String)" << endl;
+                } |
                 ID '=' exp 
                 {
                     int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
@@ -591,8 +604,23 @@ simple_stmts:   exp | RETURN
                         {
                             
                             if (sTableList[p].entry_[*$1].isConst == 0)
+                            {
                                 // assign the value to ID
                                 sTableList[p].update(*$1, *$3, 0, false);
+
+                                if (p == current_t)
+                                {
+                                    // local
+                                    int eNo = sTableList[p].entry_[*$1].eNo;
+                                    outputFile << printTabs() << "istore " << eNo << endl;
+                                }
+                                else
+                                {
+                                    // global
+                                    dataType t = sTableList[p].entry_[*$1].dType;
+                                    outputFile << printTabs() << "putstatic " << printType(t) << " " << className << "." << *$1 << endl;
+                                }
+                            }
                             else
                             {
                                 string msg = "assignment of read-only variable '";
