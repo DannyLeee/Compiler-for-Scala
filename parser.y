@@ -380,7 +380,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     whereMethod -= 1;
                 } block_content '}'
                 {
-                    dump();
+                    // dump();
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
@@ -394,7 +394,25 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
     /* Statements */
 stmts:          simple_stmts | block | conditional | loop;
 
-exp:            constant_exp | method_invocate |
+exp:            constant_exp
+                {
+                    // choise assembly code by type
+                    switch($1->dType)
+                    {
+                        case CHAR_:
+                        // TODO
+                            break;
+                        case INT_:
+                        outputFile << printTabs() << "sipush " << $1->val.iVal << endl;
+                            break;
+                        case BOOLEAN_:
+                        outputFile << printTabs() << "iconst_" << $1->val.bVal << endl;
+                            break;
+                        case STR_:
+                        outputFile << printTabs() << "ldc " << *$1->val.sVal << endl;
+                            break;
+                    }
+                } | method_invocate |
                 ID
                 {
                     int p;
@@ -406,12 +424,36 @@ exp:            constant_exp | method_invocate |
                         if (sTableList[p].array_.find(*$1) != sTableList[p].array_.end())   // ID is array name
                             temp->dType = dataType::NTYPE;
                         
-                        if (!temp->isConst)
+                        if (temp->isConst == 1)
                         {
+                            // global or local constant
+                            switch(temp->dType)
+                            {
+                                case CHAR_:
+                                // TODO
+                                    break;
+                                case INT_:
+                                outputFile << printTabs() << "sipush " << temp->val.iVal << endl;
+                                    break;
+                                case BOOLEAN_:
+                                outputFile << printTabs() << "iconst_" << temp->val.bVal << endl;
+                                    break;
+                            }
+                        }
+                        else if (p < current_t && temp->isConst == 0)
+                        {
+                            // global variable
                             temp->val.sVal = $1;
                             temp->isConst = -1;
+                            outputFile << printTabs() << "getstatic " << printType(temp->dType) << " " << className << "." << *$1 <<endl;
+                        }
+                        else if (p == current_t && temp->isConst == 0)
+                        {
+                            // local variable
+                            outputFile << printTabs() << "iload " << sTableList[p].entry_[*$1].eNo << endl;
                         }
                         $$ = temp;
+                        
                         // cout << "+++++++++++++++++++++++++++++++++++" << endl;
                         // cout << "type\tname\tval" << endl;
                         // cout << temp->dType << "\t" << *temp->val.sVal << "\t"  << endl;
@@ -763,41 +805,41 @@ method_invocate:    ID '(' comma_separate_exp ')'
                                     $$ = temp;  // function will return the return value
                                 }
                                 // debug
-                                // cout << "+++++++++++++++++++++++++++++++++++" << endl;
-                                // cout << "type\tname\tval" << endl;
-                                // for (auto it = $3->begin(); it != $3->end(); it++)
-                                // {
-                                //     if (it->isConst != -1)
-                                //         cout << it->dType << "\t" << "\t" << it->val.iVal << endl;
-                                //     else
-                                //         cout << it->dType << "\t" << *it->val.sVal << "\t" << endl;
-                                // }
-                                // cout << "+++++++++++++++++++++++++++++++++++" << endl;
-
-                                // parameter to assembly code
+                                cout << "+++++++++++++++++++++++++++++++++++" << endl;
+                                cout << "type\tname\tval" << endl;
                                 for (auto it = $3->begin(); it != $3->end(); it++)
                                 {
-                                    if (it->isConst == 1)
-                                        outputFile << printTabs() << "sipush " << it->val.iVal << endl;
-                                    else if (it->isConst == -1)
-                                    {
-                                        // find the ID position
-                                        q = isVarOrMethodName(*it->val.sVal, sTableList, current_t, objType::VAR_);
-                                        if (q == -1)
-                                            continue;
-                                        else if (q == current_t)
-                                        {
-                                            // local
-                                            p = sTableList[q].entry_[*it->val.sVal].eNo;
-                                            outputFile << printTabs() << "iload " << p << endl;
-                                        }
-                                        else if (p <= current_t)
-                                        {
-                                            // TODO: get global field
-                                            // outputFile << printTabs() << "getstatic " <<  << endl;
-                                        }
-                                    }
+                                    if (it->isConst != -1)
+                                        cout << it->dType << "\t" << "\t" << it->val.iVal << endl;
+                                    else
+                                        cout << it->dType << "\t" << *it->val.sVal << "\t" << endl;
                                 }
+                                cout << "+++++++++++++++++++++++++++++++++++" << endl;
+
+                                // parameter to assembly code
+                                // for (auto it = $3->begin(); it != $3->end(); it++)
+                                // {
+                                //     // if (it->isConst == 1)
+                                //     //     outputFile << printTabs() << "sipush " << it->val.iVal << endl;
+                                //     if (it->isConst == -1)
+                                //     {
+                                //         // find the ID position
+                                //         q = isVarOrMethodName(*it->val.sVal, sTableList, current_t, objType::VAR_);
+                                //         if (q == -1)
+                                //             continue;
+                                //         else if (q == current_t)
+                                //         {
+                                //             // local
+                                //             p = sTableList[q].entry_[*it->val.sVal].eNo;
+                                //             outputFile << printTabs() << "iload " << p << endl;
+                                //         }
+                                //         else if (p < current_t)
+                                //         {
+                                //             // TODO: get global field
+                                //             // outputFile << printTabs() << "getstatic " <<  << endl;
+                                //         }
+                                //     }
+                                // }
 
                                 // function call in assembly code
                                 outputFile << printTabs() << "invokestatic " << printType($$->dType) << " " << className << "." << *$1 << "(";

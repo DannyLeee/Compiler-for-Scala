@@ -120,6 +120,7 @@ exit    {
 
 false   {
     tokenKeyword(yytext);
+    yylval.boolVal = false;
     return FALSE;
 }
 
@@ -180,6 +181,7 @@ to  {
 
 true    {
     tokenKeyword(yytext);
+    yylval.boolVal = true;
     return TRUE;
 }
 
@@ -255,6 +257,8 @@ while   {
             }
         }
         tokenString("string:", temp);
+        string str = temp;
+        yylval.strVal = &str;
         delete(temp);
         ungetc(c, yyin);   // yytext no change
         return STRING_;
