@@ -257,8 +257,6 @@ while   {
             }
         }
         tokenString("string:", temp);
-        string str = temp;
-        yylval.strVal = &str;
         delete(temp);
         ungetc(c, yyin);   // yytext no change
         return STRING_;

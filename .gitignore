@@ -4,3 +4,5 @@ scanner
 parser
 y.*
 *.jasm
+*.class
+javaa

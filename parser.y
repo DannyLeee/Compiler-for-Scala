@@ -22,6 +22,7 @@ int error;
 fstream outputFile;
 string className;
 int labelNo = 1;
+int return_c;
 %}
 
 %union {
@@ -66,7 +67,6 @@ constant_exp:   _CHAR_
                 } |
                 STRING_
                 {
-                    // cout << "y debug: " << $1 << endl;
                     entry* temp = new entry(STR_, $1, 0);
                     $$ = temp;
                 } | num | t_f;
@@ -327,6 +327,7 @@ block_content: data_declar block_content | stmts block_content | ;
 
 method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
+                    return_c = 0;
                     // check the table no function name ID
                     if (sTableList[current_t].lookup(*$2, objType::FUNC) == -1)
                     {
@@ -382,7 +383,10 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     whereMethod -= 1;
                 } block_content '}'
                 {
+                    if (!return_c)
+                        outputFile << printTabs() << "return" << endl;
                     // dump();
+
                     // delete the table in block
                     sTableList.pop_back();
                     current_t -= 1;
@@ -411,14 +415,13 @@ exp:            constant_exp
                         outputFile << printTabs() << "iconst_" << $1->val.bVal << endl;
                             break;
                         case STR_:
-                        outputFile << printTabs() << "ldc " << "bug to fix" << endl; // TODO: fix
+                        outputFile << printTabs() << "ldc \"" << *$1->val.sVal << "\"" << endl; // TODO: fix
                             break;
                     }
                 } | method_invocate |
                 ID
                 {
                     int p;
-
                     if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
                     {
                         entry* temp = new entry();
@@ -461,14 +464,14 @@ exp:            constant_exp
                         // cout << temp->dType << "\t" << *temp->val.sVal << "\t"  << endl;
                         // cout << "+++++++++++++++++++++++++++++++++++" << endl;
                     }
-                    else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
-                    {
-                        // method invocate
-                        entry* temp = new entry();
-                        *temp = sTableList[p].func_[*$1][0];
-                        $$ = temp;
-                        // P3TODO:
-                    }
+                    // else if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::FUNC)) != -1)
+                    // {
+                    //     // method invocate
+                    //     entry* temp = new entry();
+                    //     *temp = sTableList[p].func_[*$1][0];
+                    //     $$ = temp;
+                    //     // P3TODO:
+                    // }
                     else
                     {
                         string msg = "'";
@@ -537,7 +540,8 @@ exp:            constant_exp
                     if ($2->dType == BOOLEAN_)
                     {
                         *$$ = !(*$2);
-                        outputFile << printTabs() << "ixor" << endl;
+                        outputFile << "iconst_1" << endl
+                                   << printTabs() << "ixor" << endl;
                     }
                     else
                         yyerror("no match for 'operator!'");
@@ -696,6 +700,7 @@ simple_stmts:   exp | RETURN
                         sTableList[current_t + whereMethod].func_[currentMethod][0] = temp;  // bind the return value
 
                         outputFile << printTabs() << "return" << endl;
+                        return_c += 1;
                     }
                     else
                         yyerror("return type error - invalid conversion");
@@ -713,6 +718,7 @@ simple_stmts:   exp | RETURN
                         sTableList[current_t + whereMethod].func_[currentMethod][0] = *$2;  // bind the return value
 
                         outputFile << printTabs() << "ireturn" << endl;
+                        return_c += 1;
                     }
                     else
                         yyerror("return type error - invalid conversion");
@@ -1061,7 +1067,6 @@ method_invocate:    ID '(' comma_separate_exp ')'
                             yyerror(msg);
                         }
                     };
-
 %%
 
 int main(int argc, char *argv[])
@@ -1078,9 +1083,9 @@ int main(int argc, char *argv[])
     sTableList.push_back(mainTable);
     current_t = 0;
     error = 0;
-    string temp = fileName.erase(fileName.length() - 5, 5) + "jasm";
-    outputFile.open(temp, std::ios::out);
-    cout << "writing to file: " << temp << endl;
+    string outputFileName = fileName.erase(fileName.length() - 5, 5) + "jasm";
+    outputFile.open(outputFileName, std::ios::out);
+    cout << "writing to file: " << outputFileName << endl;
 
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
@@ -1091,6 +1096,8 @@ int main(int argc, char *argv[])
 
     cout << "total error: " << error << endl << endl;
     outputFile.close();
+    if (error)
+        remove(outputFileName.c_str());
 }
 
 void yyerror(string msg)
