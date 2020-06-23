@@ -23,7 +23,7 @@ fstream outputFile;
 string className;
 int labelNo = 1;
 int return_c;
-ostream::streampos fp;
+streampos fp;
 %}
 
 %union {
@@ -162,7 +162,8 @@ var_declar:     VAR ID type_
                         else
                         {
                             // local
-                            sTableList[current_t].entry_[*$2].eNo = sTableList[current_t].entry_.size() - 1;
+                            int eNo = sTableList[current_t].entry_.size() - 1;
+                            sTableList[current_t].entry_[*$2].eNo = eNo;
                         }                
                     }
                     else
@@ -172,15 +173,19 @@ var_declar:     VAR ID type_
                         yyerror(msg);
                     }
                 } |
-                VAR ID type_ '=' exp
+                VAR ID type_
+                {
+                    fp = outputFile.tellg();
+                } '=' exp
                 {
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
+                        outputFile.seekg(fp);
                         // insert symbol table
                         if ($3 == NTYPE)
                         {
-                            sTableList[current_t].insert(*$2, *$5);
+                            sTableList[current_t].insert(*$2, *$6);
 
                             if (current_t == 1)
                             {
@@ -193,15 +198,17 @@ var_declar:     VAR ID type_
                             else
                             {
                                 // local
-                                sTableList[current_t].entry_[*$2].eNo = sTableList[current_t].entry_.size() - 1;
+                                int eNo = sTableList[current_t].entry_.size() - 1;
+                                sTableList[current_t].entry_[*$2].eNo = eNo;
+                                outputFile << printTabs() << "istore " << eNo;
                             }
                         }
                         else
                         {
-                            if ($3 == $5->dType)
+                            if ($3 == $6->dType)
                             {
                                 // Trace("Reducing to constant declar\n");
-                                sTableList[current_t].insert(*$2, *$5);
+                                sTableList[current_t].insert(*$2, *$6);
 
                                 if (current_t == 1)
                                 {
@@ -263,6 +270,7 @@ obj_declar:     OBJECT ID
                     current_t += 1;
                 } obj_content '}'
                 {
+                    // dump();
                     if (m_count < 1)
                     {
                         // linenum += 1;
@@ -759,7 +767,6 @@ simple_stmts:   exp | RETURN
                     {
                         if (sTableList[p].entry_[*$1].dType == $3->dType)
                         {
-                            
                             if (sTableList[p].entry_[*$1].isConst == 0)
                             {
                                 // assign the value to ID
@@ -878,10 +885,10 @@ loop:           WHILE
                     outputFile << printTabs() << "ifeq L" << labelNo << "_end" << endl;
                 } stmts
                 {
-                    outputFile << printTabs() << "goto L" << labelNo << "_begin" << endl
+                    outputFile << printTabs() << "goto L" << labelNo - 1 << "_begin" << endl    // minus 1 because condition cause labelNo +1
                                << "L" << labelNo++ << "_end:" << endl;
                 } |
-                FOR '(' ID ARROW num TO num ')'
+                FOR '(' ID ARROW exp TO exp ')'
                 {
                     // linenum += 1;
                     int p;
@@ -1098,8 +1105,8 @@ int main(int argc, char *argv[])
     sTableList.push_back(mainTable);
     current_t = 0;
     error = 0;
-    string outputFileName = fileName.erase(fileName.length() - 5, 5) + "jasm";
-    outputFile.open(outputFileName, std::ios::out);
+    string outputFileName = fileName.substr(0, fileName.length() - 5) + "jasm";
+    outputFile.open(outputFileName, ios::out);
     cout << "writing to file: " << outputFileName << endl;
 
     /* perform parsing */

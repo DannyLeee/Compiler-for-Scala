@@ -18,13 +18,13 @@ clean_test:
 clean_all: clean_parser clean_test
 
 test:
-	./parser HellowWorld.scala
+	./parser HelloWorld.scala
 	./parser sigma.scala
 	./parser fib.scala
 	./parser example.scala
 
 javaa_:
-	./javaa HellowWorld.jasm
+	./javaa HelloWorld.jasm
 	./javaa sigma.jasm
 	./javaa fib.jasm
 	./javaa example.jasm
