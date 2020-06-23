@@ -181,7 +181,6 @@ var_declar:     VAR ID type_
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
                     {
-                        outputFile.seekg(fp);
                         // insert symbol table
                         if ($3 == NTYPE)
                         {
@@ -190,6 +189,7 @@ var_declar:     VAR ID type_
                             if (current_t == 1)
                             {
                                 // global
+                                outputFile.seekg(fp);
                                 outputFile << printTabs() << "field static ";
                                 outputFile << printType(sTableList[current_t].entry_[*$2].dType);
                                 outputFile << " " << *$2 << endl;
@@ -213,6 +213,7 @@ var_declar:     VAR ID type_
                                 if (current_t == 1)
                                 {
                                     // global
+                                    outputFile.seekg(fp);
                                     outputFile << printTabs() << "field static ";
                                     outputFile << printType(sTableList[current_t].entry_[*$2].dType);
                                     outputFile << " " << *$2 << endl;
@@ -398,7 +399,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                 {
                     if (!return_c)
                         outputFile << printTabs() << "return" << endl;
-                    // dump();
+                    dump();
 
                     // delete the table in block
                     sTableList.pop_back();
@@ -434,8 +435,9 @@ exp:            constant_exp
                 } | method_invocate |
                 ID
                 {
-                    int p;
-                    if ((p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_)) != -1)
+                    int p = isVarOrMethodName(*$1, sTableList, current_t, objType::VAR_);
+                    cout << *$1 << " p: " << p << " cur: " << current_t << endl;
+                    if (p != -1)
                     {
                         entry* temp = new entry();
                         *temp = sTableList[p].entry_[*$1];
@@ -458,14 +460,17 @@ exp:            constant_exp
                                     break;
                             }
                         }
-                        else if (p < current_t && temp->isConst == 0)
+                        else if (p == 1 && temp->isConst != 1)
                         {
                             // global variable
                             temp->val.sVal = $1;
                             temp->isConst = -1;
-                            outputFile << printTabs() << "getstatic " << printType(temp->dType) << " " << className << "." << *$1 <<endl;
+                            outputFile << printTabs() << "getstatic " << printType(temp->dType) ;
+                            outputFile << " " << className << "." << *$1 <<endl;
+                            outputFile << printTabs() << "/*test*/" << endl;
+                            
                         }
-                        else if (p == current_t && temp->isConst == 0)
+                        else if (p == current_t && temp->isConst != 1)
                         {
                             // local variable
                             outputFile << printTabs() << "iload " << sTableList[p].entry_[*$1].eNo << endl;
@@ -772,7 +777,7 @@ simple_stmts:   exp | RETURN
                                 // assign the value to ID
                                 sTableList[p].update(*$1, *$3, 0, false);
 
-                                if (p == current_t)
+                                if (p != 1)
                                 {
                                     // local
                                     int eNo = sTableList[p].entry_[*$1].eNo;
