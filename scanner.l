@@ -44,7 +44,7 @@ integer     {digit}+
 {arithmetic}    {token(yytext);}
 
     /* Remainder */
-    /* "%"             {token(yytext);}*/
+"%"             {token(yytext);}
 
     /* Relational */
 "<"               {LIST; return LES;}

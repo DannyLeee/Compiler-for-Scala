@@ -23,6 +23,7 @@ fstream outputFile;
 string className;
 int labelNo = 1;
 int return_c;
+ostream::streampos fp;
 %}
 
 %union {
@@ -98,7 +99,10 @@ type_:          ':' CHAR
                     $$ = dataType::NTYPE;
                 };
 
-const_declar:   VAL ID type_ '=' exp
+const_declar:   VAL ID type_
+                {
+                    fp = outputFile.tellg();
+                } '=' exp
                 {
                     // check the symbol table first
                     if (sTableList[current_t].lookup(*$2, objType::VAR_) == -1)
@@ -106,15 +110,15 @@ const_declar:   VAL ID type_ '=' exp
                         // insert symbol table
                         if ($3 == NTYPE)
                         {
-                            entry temp($5->dType, $5->val, true);
+                            entry temp($6->dType, $6->val, true);
                             sTableList[current_t].insert(*$2, temp);
                         }
                         else
                         {
-                            if ($3 == $5->dType)
+                            if ($3 == $6->dType)
                             {
                                 // Trace("Reducing to constant declar\n");
-                                entry temp($5->dType, $5->val, true);
+                                entry temp($6->dType, $6->val, true);
                                 sTableList[current_t].insert(*$2, temp);
                             }
                             else
@@ -127,6 +131,7 @@ const_declar:   VAL ID type_ '=' exp
                         msg += *$2 + "'";
                         yyerror(msg);
                     }
+                    outputFile.seekg(fp);
                 };
 
 var_declar:     VAR ID type_
@@ -415,7 +420,7 @@ exp:            constant_exp
                         outputFile << printTabs() << "iconst_" << $1->val.bVal << endl;
                             break;
                         case STR_:
-                        outputFile << printTabs() << "ldc \"" << *$1->val.sVal << "\"" << endl; // TODO: fix
+                        outputFile << printTabs() << "ldc \"" << *$1->val.sVal << "\"" << endl;
                             break;
                     }
                 } | method_invocate |
@@ -520,6 +525,16 @@ exp:            constant_exp
                     }
                     else 
                         yyerror("no match for 'operator/'");
+                } |
+                exp '%' exp
+                {
+                    if ($1->dType == INT_ && $3->dType == INT_)
+                    {
+                        *$$ = *$1 % *$3;
+                        outputFile << printTabs() << "irem" << endl;
+                    }
+                    else 
+                        yyerror("type error\n");
                 } |
                 '-' exp %prec UMINUS
                 {
@@ -728,14 +743,14 @@ simple_stmts:   exp | RETURN
                     outputFile << printTabs() << "getstatic java.io.PrintStream java.lang.System.out" << endl;
                 } exp
                 {
-                    outputFile << printTabs() << "invokevirtual void java.io.PrintStream.print(java.lang.String)" << endl;
+                    outputFile << printTabs() << "invokevirtual void java.io.PrintStream.print(" << printType($3->dType) << ")" << endl;
                 } |
                 PRINTLN
                 {
                     outputFile << printTabs() << "getstatic java.io.PrintStream java.lang.System.out" << endl;
                 } exp
                 {
-                    outputFile << printTabs() << "invokevirtual void java.io.PrintStream.println(java.lang.String)" << endl;
+                    outputFile << printTabs() << "invokevirtual void java.io.PrintStream.println(" << printType($3->dType) << ")" << endl;
                 } |
                 ID '=' exp 
                 {
@@ -1179,6 +1194,9 @@ string printType(dataType type)
             break;
         case NTYPE:
         return "void";
+            break;
+        case STR_:
+        return "java.lang.String";   // for print
             break;
         default:
         return "int";
