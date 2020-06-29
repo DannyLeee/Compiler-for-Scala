@@ -24,6 +24,7 @@ string className;
 int labelNo = 1;
 int return_c;
 streampos fp;
+vector<int> ifNo;
 %}
 
 %union {
@@ -200,7 +201,7 @@ var_declar:     VAR ID type_
                                 // local
                                 int eNo = sTableList[current_t].entry_.size() - 1;
                                 sTableList[current_t].entry_[*$2].eNo = eNo;
-                                outputFile << printTabs() << "istore " << eNo;
+                                outputFile << printTabs() << "istore " << eNo << endl;
                             }
                         }
                         else
@@ -222,7 +223,9 @@ var_declar:     VAR ID type_
                                 else
                                 {
                                     // local
-                                    sTableList[current_t].entry_[*$2].eNo = sTableList[current_t].entry_.size() - 1;
+                                    int eNo = sTableList[current_t].entry_.size() - 1;
+                                    sTableList[current_t].entry_[*$2].eNo = eNo;
+                                    outputFile << printTabs() << "istore " << eNo << endl;
                                 }
                             }
                             else
@@ -395,6 +398,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     sTableList.push_back(new_t);
                     current_t += 1;
                     whereMethod -= 1;
+                    ifNo.push_back(0);
                 } block_content '}'
                 {
                     if (!return_c)
@@ -409,6 +413,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         m_count += 1;
 
                     outputFile << printTabs() << '}' << endl;
+                    ifNo.clear();
                 };
 
     /* Statements */
@@ -465,12 +470,9 @@ exp:            constant_exp
                             // global variable
                             temp->val.sVal = $1;
                             temp->isConst = -1;
-                            outputFile << printTabs() << "getstatic " << printType(temp->dType) ;
-                            outputFile << " " << className << "." << *$1 <<endl;
-                            outputFile << printTabs() << "/*test*/" << endl;
-                            
+                            outputFile << printTabs() << "getstatic " << printType(temp->dType) << " " << className << "." << *$1 <<endl;
                         }
-                        else if (p == current_t && temp->isConst != 1)
+                        else if (p != 1 && temp->isConst != 1)
                         {
                             // local variable
                             outputFile << printTabs() << "iload " << sTableList[p].entry_[*$1].eNo << endl;
@@ -848,14 +850,14 @@ block:          '{'
     // conditional
 else_:          ELSE
                 {
-                    outputFile << printTabs() << "goto L" << labelNo << "_end" << endl
-                               << "L" << labelNo << "_else:" << endl;
+                    outputFile << printTabs() << "goto IF" << current_t << "_" << ifNo[current_t - 2] << "_end" << endl
+                               << "IF" << current_t << "_" << ifNo[current_t - 2] << "_else:" << endl;
                 } stmts
                 {
-                    outputFile << "L" << labelNo++ << "_end:" << endl;
+                    outputFile << "IF" << current_t << "_" << ifNo[current_t - 2] << "_end:" << endl;
                 } | 
                 {
-                    outputFile << "L" << labelNo++ << "_else:" << endl;
+                    outputFile << "IF" << current_t << "_" << ifNo[current_t - 2] << "_else:" << endl;
                 };
 
 conditional:    IF '(' exp
@@ -866,7 +868,12 @@ conditional:    IF '(' exp
                         yyerror("tyep error - if statement needs boolean expression in ()");
                         // linenum -= 1;
                     }
-                    outputFile << printTabs() << "ifeq L" << labelNo << "_else" << endl;
+                    else
+                    {
+                        ifNo.resize(current_t - 1);
+                        ifNo[current_t - 2] += 1;
+                        outputFile << printTabs() << "ifeq IF" << current_t << "_" << ifNo[current_t - 2] << "_else" << endl;
+                    }
                 } ')' stmts else_;
 
     // loop
