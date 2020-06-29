@@ -25,6 +25,7 @@ int labelNo = 1;
 int return_c;
 streampos fp;
 vector<int> ifNo;
+vector<int> loopNo;
 %}
 
 %union {
@@ -399,6 +400,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                     current_t += 1;
                     whereMethod -= 1;
                     ifNo.push_back(0);
+                    loopNo.push_back(0);
                 } block_content '}'
                 {
                     if (!return_c)
@@ -414,6 +416,7 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
 
                     outputFile << printTabs() << '}' << endl;
                     ifNo.clear();
+                    loopNo.clear();
                 };
 
     /* Statements */
@@ -868,12 +871,9 @@ conditional:    IF '(' exp
                         yyerror("tyep error - if statement needs boolean expression in ()");
                         // linenum -= 1;
                     }
-                    else
-                    {
-                        ifNo.resize(current_t - 1);
-                        ifNo[current_t - 2] += 1;
-                        outputFile << printTabs() << "ifeq IF" << current_t << "_" << ifNo[current_t - 2] << "_else" << endl;
-                    }
+                    ifNo.resize(current_t - 1);
+                    ifNo[current_t - 2] += 1;
+                    outputFile << printTabs() << "ifeq IF" << current_t << "_" << ifNo[current_t - 2] << "_else" << endl;
                 } ')' stmts else_;
 
     // loop
@@ -885,7 +885,9 @@ num:            INTEGER
 
 loop:           WHILE
                 {
-                    outputFile << "L" << labelNo << "_begin:" << endl;
+                    loopNo.resize(current_t - 1);
+                    loopNo[current_t - 2] += 1;
+                    outputFile << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin:" << endl;
                 } '(' exp ')'
                 {
                     if ($4->dType != BOOLEAN_)
@@ -894,11 +896,11 @@ loop:           WHILE
                         yyerror("tyep error - while statement needs boolean expression in ()");
                         // linenum -= 1;
                     }
-                    outputFile << printTabs() << "ifeq L" << labelNo << "_end" << endl;
+                    outputFile << printTabs() << "ifeq LOOP" << current_t << "_" << loopNo[current_t - 2] << "_end" << endl;
                 } stmts
                 {
-                    outputFile << printTabs() << "goto L" << labelNo - 1 << "_begin" << endl    // minus 1 because condition cause labelNo +1
-                               << "L" << labelNo++ << "_end:" << endl;
+                    outputFile << printTabs() << "goto LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin" << endl
+                               << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_end:" << endl;
                 } |
                 FOR '(' ID ARROW exp TO exp ')'
                 {
@@ -920,7 +922,7 @@ loop:           WHILE
                         }
 
                         outputFile << printTabs() << "sipush " << $5->val.iVal << endl; // push num1 on stack
-                        if (p == current_t)
+                        if (p != 1)
                         {
                             // local
                             int eNo = sTableList[p].entry_[*$3].eNo;
@@ -933,8 +935,10 @@ loop:           WHILE
                             outputFile << printTabs() << "putstatic " << printType(t) << " " << className << "." << *$3 << endl;
                         }
                         
-                        outputFile << "L" << labelNo << "_begin:" << endl;
-                        if (p == current_t)
+                        loopNo.resize(current_t - 1);
+                        loopNo[current_t - 2] += 1;
+                        outputFile << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin:" << endl;
+                        if (p != 1)
                         {
                             // local
                             int eNo = sTableList[p].entry_[*$3].eNo;
@@ -948,13 +952,13 @@ loop:           WHILE
                         }
                         outputFile << printTabs() << "sipush " << $7->val.iVal << endl
                                    << printTabs() << "isub" << endl                             // Subtraction
-                                   << printTabs() << "iflt L" << labelNo << "_true" << endl     // if less than zero jump to true (L_true)
+                                   << printTabs() << "iflt LOOP" << current_t << "_" << loopNo[current_t - 2] << "_true" << endl     // if less than zero jump to true (L_true)
                                    << printTabs() << "iconst_0" << endl                         // other false
-                                   << printTabs() << "goto L" << labelNo << "_false" << endl    // and jump to L_false
-                                   << "L" << labelNo << "_true:" << endl                        // L_true
+                                   << printTabs() << "goto LOOP" << current_t << "_" << loopNo[current_t - 2] << "_false" << endl    // and jump to L_false
+                                   << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_true:" << endl                        // L_true
                                    << printTabs() << "iconst_1" << endl                         // true
-                                   << "L" << labelNo << "_false:" << endl                       // L_false 
-                                   << printTabs() << "ifeq L" << labelNo << "_end" << endl;     // if false leave loop
+                                   << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_false:" << endl                       // L_false 
+                                   << printTabs() << "ifeq LOOP" << current_t << "_" << loopNo[current_t - 2] << "_end" << endl;     // if false leave loop
                     }
                     else
                     {
@@ -970,7 +974,7 @@ loop:           WHILE
                     if ((p = isVarOrMethodName(*$3, sTableList, current_t, objType::VAR_)) != -1)
                     {
                         // ID++
-                        if (p == current_t)
+                        if (p != 1)
                         {
                             // local
                             int eNo = sTableList[p].entry_[*$3].eNo;
@@ -984,7 +988,7 @@ loop:           WHILE
                         }
                         outputFile << printTabs() << "sipush 1" << endl
                                    << printTabs() << "iadd" << endl;
-                        if (p == current_t)
+                        if (p != 1)
                         {
                             // local
                             int eNo = sTableList[p].entry_[*$3].eNo;
@@ -996,8 +1000,8 @@ loop:           WHILE
                             dataType t = sTableList[p].entry_[*$3].dType;
                             outputFile << printTabs() << "putstatic " << printType(t) << " " << className << "." << *$3 << endl;
                         }
-                        outputFile << printTabs() << "goto L" << labelNo << "_begin" << endl
-                                << "L" << labelNo++ << "_end:" << endl;
+                        outputFile << printTabs() << "goto LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin" << endl
+                                << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_end:" << endl;
                     }
                 };
 
