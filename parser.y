@@ -415,8 +415,8 @@ method_declar:  DEF ID '(' formal_arguments ')' type_
                         m_count += 1;
 
                     outputFile << printTabs() << '}' << endl;
-                    ifNo.clear();
-                    loopNo.clear();
+                    // ifNo.clear();
+                    // loopNo.clear();
                 };
 
     /* Statements */
@@ -431,7 +431,7 @@ exp:            constant_exp
                         // TODO
                             break;
                         case INT_:
-                        outputFile << printTabs() << "sipush " << $1->val.iVal << endl;
+                        outputFile << printTabs() << "ldc " << $1->val.iVal << endl;
                             break;
                         case BOOLEAN_:
                         outputFile << printTabs() << "iconst_" << $1->val.bVal << endl;
@@ -461,7 +461,7 @@ exp:            constant_exp
                                 // TODO
                                     break;
                                 case INT_:
-                                outputFile << printTabs() << "sipush " << temp->val.iVal << endl;
+                                outputFile << printTabs() << "ldc " << temp->val.iVal << endl;
                                     break;
                                 case BOOLEAN_:
                                 outputFile << printTabs() << "iconst_" << temp->val.bVal << endl;
@@ -875,7 +875,8 @@ conditional:    IF '(' exp
                         yyerror("tyep error - if statement needs boolean expression in ()");
                         // linenum -= 1;
                     }
-                    ifNo.resize(current_t - 1);
+                    if (ifNo.size() < current_t - 1)
+                        ifNo.resize(current_t - 1);
                     ifNo[current_t - 2] += 1;
                     outputFile << printTabs() << "ifeq IF" << current_t << "_" << ifNo[current_t - 2] << "_else" << endl;
                 } ')' stmts else_;
@@ -889,7 +890,8 @@ num:            INTEGER
 
 loop:           WHILE
                 {
-                    loopNo.resize(current_t - 1);
+                    if (loopNo.size() < current_t - 1)
+                        loopNo.resize(current_t - 1);
                     loopNo[current_t - 2] += 1;
                     outputFile << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin:" << endl;
                 } '(' exp ')'
@@ -925,7 +927,7 @@ loop:           WHILE
                             yyerror(msg);
                         }
 
-                        outputFile << printTabs() << "sipush " << $5->val.iVal << endl; // push num1 on stack
+                        outputFile << printTabs() << "ldc " << $5->val.iVal << endl; // push num1 on stack
                         if (p != 1)
                         {
                             // local
@@ -939,7 +941,8 @@ loop:           WHILE
                             outputFile << printTabs() << "putstatic " << printType(t) << " " << className << "." << *$3 << endl;
                         }
                         
-                        loopNo.resize(current_t - 1);
+                        if (loopNo.size() < current_t - 1)
+                            loopNo.resize(current_t - 1);
                         loopNo[current_t - 2] += 1;
                         outputFile << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin:" << endl;
                         if (p != 1)
@@ -954,7 +957,7 @@ loop:           WHILE
                             dataType t = sTableList[p].entry_[*$3].dType;
                             outputFile << printTabs() << "getstatic " << printType(t) << " " << className << "." << *$3 << endl;
                         }
-                        outputFile << printTabs() << "sipush " << $7->val.iVal << endl
+                        outputFile << printTabs() << "ldc " << $7->val.iVal << endl
                                    << printTabs() << "isub" << endl                             // Subtraction
                                    << printTabs() << "iflt LOOP" << current_t << "_" << loopNo[current_t - 2] << "_true" << endl     // if less than zero jump to true (L_true)
                                    << printTabs() << "iconst_0" << endl                         // other false
