@@ -194,7 +194,7 @@ var_declar:     VAR ID type_
                                 outputFile.seekg(fp);
                                 outputFile << printTabs() << "field static ";
                                 outputFile << printType(sTableList[current_t].entry_[*$2].dType);
-                                outputFile << " " << *$2 << endl;
+                                outputFile << " " << *$2 << " = " << $6->val.iVal << endl;
                                 sTableList[current_t].entry_[*$2].eNo = -1;
                             }
                             else
@@ -218,7 +218,7 @@ var_declar:     VAR ID type_
                                     outputFile.seekg(fp);
                                     outputFile << printTabs() << "field static ";
                                     outputFile << printType(sTableList[current_t].entry_[*$2].dType);
-                                    outputFile << " " << *$2 << endl;
+                                    outputFile << " " << *$2 << " = " << $6->val.iVal << endl;
                                     sTableList[current_t].entry_[*$2].eNo = -1;
                                 }
                                 else
@@ -465,6 +465,9 @@ exp:            constant_exp
                                     break;
                                 case BOOLEAN_:
                                 outputFile << printTabs() << "iconst_" << temp->val.bVal << endl;
+                                    break;
+                                case STR_:
+                                outputFile << printTabs() << "ldc \"" << *temp->val.sVal << "\"" << endl;
                                     break;
                             }
                         }
@@ -857,7 +860,8 @@ else_:          ELSE
                                << "IF" << current_t << "_" << ifNo[current_t - 2] << "_else:" << endl;
                 } stmts
                 {
-                    outputFile << "IF" << current_t << "_" << ifNo[current_t - 2] << "_end:" << endl;
+                    outputFile << "IF" << current_t << "_" << ifNo[current_t - 2] << "_end:" << endl
+                               << printTabs() << "nop" << endl;
                 } | 
                 {
                     outputFile << "IF" << current_t << "_" << ifNo[current_t - 2] << "_else:" << endl;
@@ -902,7 +906,7 @@ loop:           WHILE
                     outputFile << printTabs() << "goto LOOP" << current_t << "_" << loopNo[current_t - 2] << "_begin" << endl
                                << "LOOP" << current_t << "_" << loopNo[current_t - 2] << "_end:" << endl;
                 } |
-                FOR '(' ID ARROW exp TO exp ')'
+                FOR '(' ID ARROW num TO num ')'
                 {
                     // linenum += 1;
                     int p;
